@@ -1,0 +1,1273 @@
+/* ============================================================
+   《太极八段锦》v11 · 商业级视觉重构层
+   ------------------------------------------------------------
+   这一层只做三件事，全部服务于一个目标：**消灭廉价拼接感**。
+
+   一、材质归一
+       旧版同时存在：描金浮雕圆钮、纸卡、深色玻璃胶囊、霓虹描边、
+       多层内发光、虚线框、渐变字+深色描边……六种「材质方言」。
+       新版只留一套：**宣纸 + 一根发丝金线 + 一层柔和墨影**。
+       所有 dashed 虚线、inset 高光、双重描边一律清除。
+
+   二、色彩收敛
+       墨 / 宣纸 / 描金 / 朱砂 / 青瓷 —— 五个颜色。
+       霓虹青绿（#68e7b8、#3bb88e）、鲜蓝、彩色星云全部退出 UI。
+
+   三、字号分工
+       书法体只出现在 ≥16px 的题字位；正文一律宋体；
+       数字一律 Cinzel 等宽数字。小字不再用毛笔字。
+
+   加载顺序：fonts.css → style.css → theme.css（本文件最后覆盖）
+   ============================================================ */
+
+/* ============================================================
+   0. 排版基座
+   ============================================================ */
+
+/* 一切数字：等宽、内敛、贵气 */
+#hud-score, #hud-combo, .home-coins b, .curr b,
+#detail-best-score, #detail-best-combo, #detail-bpm-tag,
+#r-score, #r-combo, #r-counts, #r-acc, #r-coins, #r-coins-total,
+.meter-val, .sync-code, .sri-meta .stars, .hb-stats b {
+  font-family: var(--f-num);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.4px;
+}
+
+/* 书法体只允许出现在这些题字位（其余全部回落到宋体） */
+.home-title, .qupu-main, #detail-name, .sri-title, .modal-title,
+.result-title, .pause-seal, .tut-ico, .tut-step h3, .tut-live-step,
+.mb-name, .seal-face span, .qr-seal, .list-tag, .tip-head, .hb-sec-title,
+.pause-card .result-title, .home-title-seal span, .record-seal, .sri-seal,
+.xihu-cer-seal, #hud-song-title, #hud-fever {
+  font-family: var(--f-brush);
+}
+
+/* ============================================================
+   1. 统一材质：宣纸卡 / 发丝金线 / 印章
+   ============================================================ */
+
+/* 1a. 纸面（弹窗、结算、暂停、立轴）——一套底，一套线，一套影 */
+.modal-card,
+.result-panel,
+.pause-card,
+.stand-paper {
+  border-radius: var(--r-m);
+  border: 1px solid var(--gold-line);
+  background:
+    linear-gradient(180deg, rgba(252, 248, 238, 0.97), rgba(244, 236, 217, 0.98)),
+    url('../assets/scroll_item_bg.jpg') center / cover no-repeat;
+  box-shadow:
+    var(--shadow-3),
+    inset 0 0 0 4px rgba(255, 253, 246, 0.5),
+    inset 0 0 0 5px rgba(125, 97, 50, 0.16);
+}
+/* 纸面顶部一道极淡的墨气，避免整块纸「浮」在画上 */
+.modal-card::before,
+.result-panel::before,
+.pause-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(120% 70% at 50% 0%, rgba(38, 42, 32, 0.06), transparent 62%);
+}
+.modal-card, .result-panel, .pause-card { position: relative; }
+
+/* 1b. 印章：一律方正朱文，微微歪斜，只有 2px 圆角 */
+.record-seal, .sri-seal, .pause-seal, .tut-ico,
+.home-title-seal span, .xihu-cer-seal {
+  border-radius: 2px;
+  background: linear-gradient(150deg, #b23d27 0%, #9a2e1c 55%, #7d2211 100%);
+  color: #fdf6e6;
+  border: 1px solid rgba(253, 246, 230, 0.55);
+  box-shadow: 0 2px 8px rgba(90, 24, 14, 0.4);
+  text-shadow: none;
+}
+.sri-seal.none {
+  background: linear-gradient(150deg, #6d7a68, #48553f);
+  border-color: rgba(240, 244, 232, 0.4);
+  box-shadow: 0 2px 8px rgba(30, 40, 32, 0.3);
+}
+
+/* ============================================================
+   2. 按钮族
+   ============================================================ */
+
+/* 2a. 主按钮：朱砂漆片 */
+.big-btn,
+.tut-btn.gold {
+  font-family: var(--f-serif);
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  color: #fcf4e2;
+  border-radius: var(--r-s);
+  border: 1px solid rgba(253, 246, 230, 0.35);
+  background: linear-gradient(180deg, #b03d27 0%, #95301c 58%, #7a2110 100%);
+  box-shadow:
+    0 3px 12px rgba(90, 24, 14, 0.42),
+    inset 0 1px 0 rgba(255, 224, 190, 0.32);
+  text-shadow: 0 1px 2px rgba(60, 14, 6, 0.5);
+  transition: transform 0.14s ease, box-shadow 0.14s ease, filter 0.14s ease;
+}
+.big-btn:hover,
+.tut-btn.gold:hover {
+  filter: brightness(1.07);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(90, 24, 14, 0.48), inset 0 1px 0 rgba(255, 224, 190, 0.4);
+}
+.big-btn:active, .tut-btn.gold:active { transform: translateY(1px); filter: brightness(0.96); }
+
+/* 2b. 次按钮：纸面发丝线（描金细线，不做浮雕） */
+.big-btn.ghost,
+.tut-btn.ghost,
+.wood-board-btn {
+  font-family: var(--f-serif);
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: #4a4232;
+  border-radius: var(--r-s);
+  border: 1px solid rgba(125, 97, 50, 0.42);
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.9), rgba(240, 232, 212, 0.86));
+  box-shadow: 0 2px 8px rgba(30, 36, 28, 0.16);
+  text-shadow: none;
+}
+.big-btn.ghost:hover,
+.tut-btn.ghost:hover,
+.wood-board-btn:hover {
+  border-color: rgba(125, 97, 50, 0.8);
+  background: linear-gradient(180deg, #fffdf6, #f3ecda);
+  filter: none;
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(30, 36, 28, 0.18);
+}
+.tut-btn {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-weight: 600;
+  font-size: 13.5px;
+  letter-spacing: 2px;
+  padding: 8px 18px;
+}
+
+/* 2c. 圆形工具钮 → 方形发丝线（去掉金色径向浮雕） */
+.gold-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-s);
+  color: #f0e4c8;
+  background: rgba(18, 24, 19, 0.5);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+.gold-icon-btn:hover {
+  transform: translateY(-1px);
+  color: #fdf4dc;
+  border-color: rgba(220, 193, 137, 0.95);
+  background: rgba(24, 32, 25, 0.72);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.28);
+}
+.gold-icon-btn svg {
+  width: 17px;
+  height: 17px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.gold-icon-btn svg .ico-dot { fill: currentColor; stroke: none; }
+.gold-icon-btn svg .ico-wave, .gold-icon-btn svg .ico-slash { transition: opacity 0.16s ease; }
+/* 默认「有声」：只显示声波；静音时声波隐去、斜杠亮起 */
+.gold-icon-btn svg .ico-slash { opacity: 0; }
+body.muted .gold-icon-btn svg .ico-wave { opacity: 0; }
+body.muted .gold-icon-btn svg .ico-slash { opacity: 1; stroke: #d98a72; }
+
+/* 2d. HUD 按钮：透明发丝线，不抢画面 */
+.hud-btn {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-weight: 600;
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  padding: 5px 11px;
+  color: #e8dcc0;
+  background: rgba(16, 22, 17, 0.34);
+  border: 1px solid rgba(185, 154, 95, 0.55);
+  box-shadow: none;
+  backdrop-filter: blur(4px);
+}
+.hud-btn:hover {
+  color: #fdf4dc;
+  border-color: rgba(220, 193, 137, 0.95);
+  background: rgba(20, 28, 21, 0.6);
+  box-shadow: none;
+}
+.hud-btn.quit {
+  color: #e9c4b6;
+  border-color: rgba(190, 110, 88, 0.6);
+  background: rgba(38, 20, 16, 0.36);
+}
+.hud-btn.quit:hover { color: #ffe3d5; border-color: rgba(226, 142, 118, 0.95); background: rgba(52, 26, 20, 0.62); }
+.hud-btn .ico { display: grid; place-items: center; opacity: 1; }
+.hud-btn .ico svg { width: 11px; height: 11px; display: block; fill: currentColor; stroke: none; }
+.hud-btn.quit .ico svg { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
+/* 2e. 关闭钮：小方框 + 细线，不用红圆点 */
+.modal-close {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--r-s);
+  font-size: 12px;
+  line-height: 1;
+  color: #6d5b3c;
+  background: transparent;
+  border: 1px solid rgba(125, 97, 50, 0.42);
+  transition: all 0.15s ease;
+}
+.modal-close:hover { color: var(--cinnabar); border-color: rgba(168, 52, 31, 0.6); background: rgba(168, 52, 31, 0.07); }
+
+/* ============================================================
+   3. 首页
+   ============================================================ */
+
+/* 3a. 标题：字是好的，坏在那一圈奶油色描边死光 */
+.home-title {
+  letter-spacing: 4px;
+  text-indent: 4px;
+  filter: drop-shadow(0 3px 7px rgba(20, 30, 20, 0.34));
+}
+.home-title img { height: 82px; }
+.home-title-seal {
+  width: 50px;
+  height: 50px;
+  left: -60px;
+  top: -2px;
+  transform: rotate(-5deg);
+  filter: drop-shadow(0 3px 8px rgba(90, 24, 14, 0.35));
+}
+/* 副题改为真字体排版，不再用位图描的字形 */
+.home-sub-txt {
+  font-family: var(--f-serif);
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 9px;
+  text-indent: 9px;
+  color: #3c4436;
+  text-shadow: 0 1px 3px rgba(255, 253, 244, 0.85);
+}
+.home-sub-txt img { display: none; }
+.home-sub-txt img + span { display: inline; }
+.home-rule {
+  width: 54px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(125, 97, 50, 0.65));
+  box-shadow: 0 1px 0 rgba(255, 253, 244, 0.6);
+}
+.home-subtitle .home-rule:last-child {
+  background: linear-gradient(90deg, rgba(125, 97, 50, 0.65), transparent);
+}
+.home-tagline {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  font-weight: 400;
+  letter-spacing: 5px;
+  text-indent: 5px;
+  color: #4a5142;
+  text-shadow: 0 1px 3px rgba(255, 253, 244, 0.92), 0 0 12px rgba(255, 253, 244, 0.7);
+}
+
+/* 3b. 开始钮：一枚墨玉盘，只留一根金线 */
+.home-start { width: 148px; height: 148px; }
+.start-halo {
+  inset: -34px;
+  background: radial-gradient(circle, rgba(255, 246, 220, 0.5) 0%, rgba(232, 206, 150, 0.26) 34%, rgba(232, 206, 150, 0.08) 58%, transparent 74%);
+  animation: haloBreathe 4.2s ease-in-out infinite;
+}
+.start-ring.outer {
+  inset: 0;
+  border: 1px solid rgba(240, 220, 172, 0.9);
+  background: none;
+  -webkit-mask: none;
+  mask: none;
+  box-shadow:
+    0 0 0 5px rgba(255, 250, 235, 0.16),
+    0 0 22px rgba(255, 240, 200, 0.34),
+    0 8px 26px rgba(40, 34, 16, 0.3);
+  animation: ringspin 60s linear infinite;
+}
+.start-ring.inner {
+  inset: 13px;
+  border: 1px solid rgba(240, 220, 172, 0.42);
+  animation: ringspin 90s linear infinite reverse;
+}
+.start-disc {
+  width: 104px;
+  height: 104px;
+  gap: 3px;
+  background:
+    radial-gradient(circle at 40% 30%, rgba(255, 244, 214, 0.18) 0%, rgba(255, 244, 214, 0) 52%),
+    radial-gradient(circle, #23362a 0%, #16231a 62%, #0d140f 100%);
+  border: 1px solid rgba(240, 220, 172, 0.9);
+  box-shadow:
+    0 10px 26px rgba(10, 20, 12, 0.55),
+    inset 0 0 0 3px rgba(240, 220, 172, 0.14);
+}
+.start-main {
+  font-family: var(--f-brush);
+  font-size: 19px;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  color: #f7ecd2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+}
+.start-sub {
+  font-family: var(--f-serif);
+  font-size: 9.5px;
+  font-weight: 400;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  color: rgba(232, 206, 150, 0.82);
+}
+
+/* 3c. 底部导航：八枚同款墨玉印章，字是纹样本身 */
+.seal-nav-group { gap: 14px; }
+.seal-face {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--r-s);
+  background: rgba(18, 24, 19, 0.42);
+  border: 1px solid rgba(185, 154, 95, 0.55);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(5px);
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.seal-face span {
+  border-radius: 0;
+  background: none;
+  border: none;
+  box-shadow: none;
+  text-shadow: none;
+  font-size: 22px;
+  font-weight: 400;
+  color: #e7d6ac;
+  line-height: 1;
+  transition: color 0.18s ease;
+}
+.seal-nav:hover .seal-face {
+  transform: translateY(-2px);
+  background: rgba(24, 32, 25, 0.62);
+  border-color: rgba(220, 193, 137, 0.95);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.34);
+  filter: none;
+}
+.seal-nav:hover .seal-face span { color: #fdf1d4; }
+.seal-nav:active .seal-face { transform: translateY(0) scale(0.97); }
+.seal-label {
+  font-family: var(--f-serif);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  text-indent: 2px;
+  color: #f0e7cf;
+  text-shadow: 0 1px 4px rgba(10, 16, 10, 0.95), 0 0 10px rgba(10, 16, 10, 0.7);
+}
+
+/* 3d. 服务器条 → 一句题款：两侧发丝线，无边框无底色 */
+.home-server-bar {
+  margin-bottom: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--f-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 4px;
+  text-indent: 4px;
+  color: #e6dcc0;
+  text-shadow: 0 1px 4px rgba(10, 16, 10, 0.95), 0 0 12px rgba(10, 16, 10, 0.8);
+}
+.home-server-bar b { color: var(--gold-lit); font-weight: 600; }
+.home-server-bar .hsb-rule {
+  width: 46px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(220, 193, 137, 0.7));
+  box-shadow: 0 1px 3px rgba(10, 16, 10, 0.6);
+}
+.home-server-bar .hsb-rule:last-child {
+  background: linear-gradient(90deg, rgba(220, 193, 137, 0.7), transparent);
+}
+.home-server-bar:hover {
+  color: #fdf4dc;
+  border: none;
+  box-shadow: none;
+}
+.home-server-bar:hover .hsb-rule {
+  background: linear-gradient(90deg, transparent, rgba(253, 244, 220, 0.9));
+}
+.home-server-bar:hover .hsb-rule:last-child {
+  background: linear-gradient(90deg, rgba(253, 244, 220, 0.9), transparent);
+}
+
+/* 3e. 顶部工具条：墨片 + 发丝线，方形 */
+.home-coins, .curr {
+  border-radius: var(--r-s);
+  padding: 5px 11px;
+  font-family: var(--f-serif);
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 2px;
+  color: #ece2c8;
+  background: rgba(18, 24, 19, 0.5);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(6px);
+}
+.home-coins b, .curr b { color: var(--gold-lit); font-weight: 600; font-size: 13px; min-width: 1.1em; text-align: right; }
+.coin-svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+  fill: none;
+  stroke: var(--gold-lit);
+  stroke-width: 1.5;
+}
+
+/* 3f. 扫码即玩：一张小落款笺，压低存在感 */
+.home-qr {
+  left: 20px;
+  bottom: 112px;
+  gap: 2px;
+  padding: 10px 10px 8px;
+  border-radius: var(--r-m);
+  border: 1px solid rgba(125, 97, 50, 0.5);
+  outline: none;
+  background: linear-gradient(180deg, rgba(252, 248, 238, 0.94), rgba(243, 234, 213, 0.94));
+  box-shadow: 0 8px 22px rgba(10, 16, 12, 0.3);
+  opacity: 0.94;
+  transform: scale(0.88);
+  transform-origin: left bottom;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.home-qr:hover { opacity: 1; transform: scale(0.92); }
+.home-qr img {
+  width: 96px;
+  height: 96px;
+  padding: 3px;
+  background: #fffdf7;
+  border: 1px solid rgba(125, 97, 50, 0.35);
+  border-radius: 2px;
+}
+.home-qr .qr-seal {
+  top: -9px;
+  right: -9px;
+  width: 22px;
+  height: 22px;
+  font-size: 13px;
+  border-radius: 2px;
+  color: #fdf6e6;
+  background: linear-gradient(150deg, #b23d27, #7d2211);
+  border: 1px solid rgba(253, 246, 230, 0.5);
+  box-shadow: 0 2px 7px rgba(90, 24, 14, 0.4);
+  transform: rotate(5deg);
+}
+.home-qr .qr-label {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  color: #4a3f2c;
+}
+.home-qr .qr-sub { font-size: 9.5px; color: #8a8168; letter-spacing: 0.5px; }
+/* 融合 v12.1：裸 URL 是扫码失败的兜底（v9 设定：二维码下方直接显示可点链接，扫不出也能点进去），恢复显示 */
+.home-qr .qr-link {
+  display: block;
+  max-width: 170px;
+  font-size: 10px;
+  color: #2f5b42;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-decoration: underline;
+}
+
+/* ============================================================
+   4. 局内 HUD：去框，融进画面
+   ============================================================ */
+#hud {
+  top: 0;
+  height: 66px;
+  padding: 0 20px;
+}
+.hud-bar {
+  border: none;
+  border-radius: 0;
+  background: linear-gradient(180deg, rgba(11, 16, 12, 0.86) 0%, rgba(11, 16, 12, 0.62) 46%, rgba(11, 16, 12, 0.16) 82%, rgba(11, 16, 12, 0) 100%);
+  box-shadow: none;
+  padding: 0 16px 12px;
+}
+.hud-bar::after { display: none; }
+.hud-rod { display: none; }
+
+#hud-song-title {
+  font-size: 17px;
+  letter-spacing: 2px;
+  color: #f6ecd4;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.75);
+}
+.hud-seal {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  padding: 1px 5px;
+  border-radius: 2px;
+  color: #fdf3e0;
+  background: linear-gradient(150deg, #a8341f, #7d2211);
+  border: 1px solid rgba(253, 246, 230, 0.42);
+}
+#hud-score {
+  font-size: 19px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  color: #f2ddaa;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.7);
+  min-width: 6.4ch;
+}
+.hud-combo-lbl {
+  font-family: var(--f-serif);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: rgba(226, 216, 190, 0.72);
+}
+#hud-combo {
+  font-size: 15px;
+  font-weight: 400;
+  color: #e9dcbc;
+  text-shadow: 0 1px 5px rgba(0, 0, 0, 0.7);
+}
+
+.meter-label {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  width: 26px;
+  color: rgba(226, 216, 190, 0.78);
+  text-align: right;
+}
+.meter-track {
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(8, 12, 9, 0.62);
+  border: 1px solid rgba(185, 154, 95, 0.28);
+  box-shadow: none;
+}
+.meter-fill { border-radius: 2px; }
+.meter-fill.breath {
+  background: linear-gradient(90deg, #9a7b3c 0%, #b8563a 62%, #a8341f 100%);
+  box-shadow: none;
+}
+.meter-fill.energy {
+  background: linear-gradient(90deg, #7d6132 0%, #c9a86a 55%, #e8d3a0 100%);
+  box-shadow: 0 0 6px rgba(220, 193, 137, 0.4);
+}
+.meter-val {
+  font-size: 10px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: rgba(232, 224, 202, 0.85);
+  width: 32px;
+}
+#phase-text {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  color: #a9c3b2;
+}
+#phase-text.phase-yang { color: #e2c78d; }
+
+.hud-disc { width: 36px; height: 36px; }
+.hud-disc-halo {
+  inset: -6px;
+  background: radial-gradient(circle, rgba(232, 206, 150, 0.3) 0%, rgba(232, 206, 150, 0.1) 46%, transparent 72%);
+}
+#hud-taichi {
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.55);
+  animation: ringspin 22s linear infinite;
+  display: block;
+}
+
+#hud-fever {
+  font-size: 11.5px;
+  letter-spacing: 3px;
+  text-indent: 3px;
+  padding: 3px 10px;
+  border-radius: 2px;
+  color: #fdf6e6;
+  background: linear-gradient(150deg, #b23d27, #7d2211);
+  border: 1px solid rgba(253, 246, 230, 0.45);
+  animation: feverPulse 1.6s ease-in-out infinite alternate;
+}
+@keyframes feverPulse {
+  from { box-shadow: 0 0 0 rgba(168, 52, 31, 0); }
+  to   { box-shadow: 0 0 16px rgba(196, 80, 58, 0.75); }
+}
+
+/* ============================================================
+   5. 曲谱阁
+   ============================================================ */
+.qupu-main {
+  font-size: 27px;
+  letter-spacing: 12px;
+  text-indent: 12px;
+  color: #232a22;
+  text-shadow: 0 1px 0 rgba(255, 253, 244, 0.9);
+  line-height: 1.15;
+}
+.qupu-sub {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 7px;
+  text-indent: 7px;
+  color: #7d6a45;
+  margin-top: 1px;
+}
+.wood-board-btn {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  letter-spacing: 2px;
+  border-radius: var(--r-s);
+  color: #4a4232;
+  background: linear-gradient(180deg, rgba(255, 253, 246, 0.86), rgba(240, 232, 212, 0.8));
+  border: 1px solid rgba(125, 97, 50, 0.42);
+  box-shadow: 0 2px 8px rgba(30, 36, 28, 0.14);
+}
+.wood-board-btn span { color: var(--cinnabar); }
+
+/* 5a. 立轴 */
+.qupu-stand { filter: drop-shadow(0 12px 26px rgba(20, 28, 20, 0.26)); }
+.stand-rod {
+  height: 9px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #6d5a35, #8f7a4d 30%, #6d5a35 70%, #4a3d23);
+  border: 1px solid rgba(125, 97, 50, 0.75);
+  box-shadow: 0 2px 6px rgba(20, 26, 18, 0.32);
+}
+.stand-paper {
+  border-left: 1px solid rgba(125, 97, 50, 0.3);
+  border-right: 1px solid rgba(125, 97, 50, 0.3);
+  gap: 5px;
+  padding: 9px 13px 10px;
+}
+.stand-art {
+  height: 92px;
+  border-radius: 2px;
+  border: 1px solid rgba(125, 97, 50, 0.45);
+  box-shadow: 0 2px 8px rgba(30, 40, 30, 0.14);
+}
+#detail-name { font-size: 21px; letter-spacing: 4px; color: #26301f; }
+.detail-meta {
+  font-family: var(--f-serif);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #86785a;
+}
+
+/* 5b. 标签：一个色系，一根发丝线，没有虚线 */
+.tag-jade, .tag-gold, .sri-badge {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  font-weight: 400;
+  letter-spacing: 1px;
+  padding: 2px 7px;
+  border-radius: 2px;
+  border: 1px solid rgba(125, 97, 50, 0.32);
+  background: rgba(255, 253, 246, 0.55);
+  white-space: nowrap;
+}
+.tag-jade { color: #4f7260; border-color: rgba(95, 133, 112, 0.45); }
+.tag-gold { color: #7d6132; }
+.sri-badge { color: #4f7260; border-color: rgba(95, 133, 112, 0.45); background: rgba(255, 253, 246, 0.5); }
+
+/* 5c. 招式说明：去掉白底卡片，改成一道朱砂竖线 */
+.detail-brocade {
+  width: 100%;
+  padding: 1px 0 1px 9px;
+  border-radius: 0;
+  border: none;
+  border-left: 2px solid rgba(168, 52, 31, 0.55);
+  background: none;
+}
+.brocade-head {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  color: #2b3327;
+}
+.detail-brocade p {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: #6d6852;
+  margin-top: 1px;
+}
+
+/* 5d. 成绩条：发丝线分隔，不用虚线框 */
+.detail-record {
+  width: 100%;
+  gap: 9px;
+  padding: 6px 0 5px;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid rgba(125, 97, 50, 0.26);
+  border-bottom: 1px solid rgba(125, 97, 50, 0.26);
+  background: none;
+}
+.record-seal {
+  min-width: 40px;
+  height: 26px;
+  font-size: 10.5px;
+  letter-spacing: 1px;
+  transform: rotate(-3deg);
+}
+.record-lines {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: #7d7459;
+}
+.record-lines b { color: #a8341f; font-weight: 600; }
+
+/* 5e. 难度签：纸片 + 发丝线，选中只加一根朱砂线 */
+.diff-row { gap: 6px; }
+.diff-stamp {
+  font-family: var(--f-serif);
+  padding: 5px 8px;
+  border-radius: var(--r-s);
+  background: rgba(255, 253, 246, 0.6);
+  border: 1px solid rgba(125, 97, 50, 0.34);
+  box-shadow: none;
+  flex: 1 1 0;
+  transition: all 0.16s ease;
+}
+.diff-stamp b { font-size: 12.5px; font-weight: 600; letter-spacing: 1px; color: #4a4232; white-space: nowrap; }
+.diff-stamp i { font-size: 9.5px; font-style: normal; color: #948a6d; letter-spacing: 0.5px; white-space: nowrap; }
+.diff-stamp:hover { border-color: rgba(125, 97, 50, 0.7); background: rgba(255, 253, 246, 0.92); }
+.diff-stamp.active {
+  background: linear-gradient(180deg, #fffdf6, #f6ecd4);
+  border-color: rgba(168, 52, 31, 0.72);
+  box-shadow: 0 2px 8px rgba(120, 50, 30, 0.16);
+  transform: none;
+}
+.diff-stamp.active b { color: #a8341f; }
+.diff-stamp.active i { color: #a8341f; opacity: 0.7; }
+.diff-stamp.locked { filter: none; opacity: 0.42; }
+.diff-stamp.locked b { color: #8a8272; }
+.detail-note {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  line-height: 1.55;
+  letter-spacing: 0.5px;
+  color: #a8341f;
+}
+
+/* 5f. 开始修行：墨玉盘 */
+.start-disc-btn { width: 76px; height: 76px; }
+.sdb-ring {
+  border: 1px solid rgba(232, 206, 150, 0.85);
+  background: radial-gradient(circle at 40% 30%, #26382b 0%, #17241a 60%, #0d140f 100%);
+  box-shadow:
+    0 5px 16px rgba(20, 30, 18, 0.4),
+    inset 0 0 0 3px rgba(232, 206, 150, 0.1),
+    0 0 0 5px rgba(255, 250, 235, 0.1);
+  animation: none;
+}
+.sdb-text b {
+  font-family: var(--f-serif);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-indent: 2px;
+  color: #f6ecd4;
+  text-shadow: none;
+}
+.sdb-text i {
+  font-family: var(--f-serif);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: rgba(232, 206, 150, 0.8);
+}
+.start-disc-btn:hover .sdb-ring {
+  border-color: #f0dcae;
+  box-shadow: 0 7px 20px rgba(20, 30, 18, 0.46), inset 0 0 0 3px rgba(232, 206, 150, 0.16), 0 0 0 5px rgba(255, 250, 235, 0.16);
+}
+
+/* 5g. 列表头 */
+.list-head {
+  padding: 5px 10px;
+  border-radius: 0;
+  border: none;
+  border-bottom: 1px solid rgba(125, 97, 50, 0.34);
+  background: none;
+}
+.list-tag {
+  font-size: 13px;
+  letter-spacing: 3px;
+  color: #5c4f33;
+}
+.list-hint {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: #8a8168;
+}
+
+/* 5h. 曲目卷轴行 */
+.song-scroll-item {
+  gap: 11px;
+  padding: 7px 12px 7px 11px;
+  border-radius: var(--r-s);
+  border: 1px solid rgba(125, 97, 50, 0.34);
+  background: linear-gradient(180deg, rgba(253, 250, 242, 0.92), rgba(245, 238, 221, 0.94));
+  box-shadow: 0 3px 10px rgba(24, 34, 24, 0.14);
+}
+.song-scroll-item::before,
+.song-scroll-item::after {
+  top: -2px;
+  bottom: -2px;
+  width: 5px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #7a6742, #4a3d23 60%, #2f270f);
+  border: 1px solid rgba(125, 97, 50, 0.6);
+  box-shadow: none;
+}
+.song-scroll-item::before { left: -3px; }
+.song-scroll-item::after { right: -3px; }
+.song-scroll-item:hover {
+  transform: translateY(-1px);
+  border-color: rgba(125, 97, 50, 0.62);
+  box-shadow: 0 6px 16px rgba(24, 34, 24, 0.18);
+}
+.song-scroll-item.selected {
+  transform: none;
+  border-color: rgba(168, 52, 31, 0.6);
+  background: linear-gradient(180deg, #fffdf6, #f8f0dc);
+  box-shadow: 0 6px 18px rgba(24, 34, 24, 0.2), inset 3px 0 0 rgba(168, 52, 31, 0.85);
+}
+.song-scroll-item.selected::after { border-color: rgba(125, 97, 50, 0.7); }
+.song-scroll-item .sel-ring { display: none; }
+.sri-thumb {
+  width: 96px;
+  height: 50px;
+  border-radius: 2px;
+  border: 1px solid rgba(125, 97, 50, 0.4);
+  box-shadow: none;
+}
+.sri-title { font-size: 19px; letter-spacing: 2px; color: #26301f; }
+.sri-action {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  color: #a8341f;
+}
+.sri-meta {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #8a8168;
+}
+.sri-meta .stars { color: #a8894b; letter-spacing: 2px; }
+.sri-seal {
+  width: 38px;
+  height: 38px;
+  font-size: 12.5px;
+  letter-spacing: 0.5px;
+  transform: rotate(-5deg);
+}
+.sri-lock {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: #a8341f;
+}
+.song-scroll-item.locked,
+.song-scroll-item.locked-coins { filter: grayscale(0.85) opacity(0.72); }
+.song-scroll-item.locked::after,
+.song-scroll-item.locked-coins::after {
+  font-family: var(--f-serif);
+  font-size: 10px;
+  letter-spacing: 1px;
+  padding: 2px 8px;
+  border-radius: 2px;
+  color: #f3e9d2;
+  background: rgba(20, 26, 20, 0.78);
+  border: 1px solid rgba(185, 154, 95, 0.55);
+}
+
+/* ============================================================
+   6. 弹窗
+   ============================================================ */
+.paper-modal { background: rgba(8, 12, 9, 0.58); backdrop-filter: blur(4px); }
+.modal-card { border-radius: var(--r-m); padding: 0 0 16px; }
+.modal-head {
+  padding: 10px 16px 9px;
+  border-bottom: 1px solid rgba(125, 97, 50, 0.3);
+}
+.modal-title {
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 4px;
+  text-indent: 4px;
+  color: #2b3327;
+}
+.modal-body {
+  padding: 12px 18px 0;
+  font-family: var(--f-serif);
+  font-size: 13px;
+  line-height: 1.9;
+  color: #3c4235;
+}
+.modal-body strong { font-weight: 600; color: #26301f; }
+.modal-note {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  line-height: 1.8;
+  color: #857a5e;
+  margin-top: 10px;
+}
+.modal-body .dot { width: 6px; height: 6px; border-radius: 50%; box-shadow: none; margin-right: 7px; }
+.dot.red  { background: #a8341f; }
+.dot.jade { background: #5f8570; }
+.dot.gold { background: #b99a5f; }
+.team-names {
+  font-family: var(--f-serif);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #2b3327;
+}
+.team-note {
+  font-family: var(--f-serif);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: #857a5e;
+}
+
+/* 6a. 手札 */
+.hb-sec-title {
+  font-family: var(--f-serif);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 3px;
+  color: #2b3327;
+  border-bottom: 1px solid rgba(125, 97, 50, 0.3);
+  padding-bottom: 5px;
+}
+.hb-cell, .hb-seal {
+  border: 1px solid rgba(125, 97, 50, 0.28);
+  border-radius: 2px;
+  background: rgba(255, 253, 246, 0.5);
+}
+.hb-cell .hb-name { font-family: var(--f-serif); font-size: 11.5px; font-weight: 600; color: #2b3327; }
+.hb-cell .hb-tip { font-family: var(--f-serif); font-size: 10px; line-height: 1.45; color: #857a5e; }
+.hb-ink { border-radius: 2px; font-size: 22px; color: #7a856d; }
+.hb-seal { font-family: var(--f-serif); font-size: 11.5px; color: #2b3327; }
+.hb-stats { font-family: var(--f-serif); font-size: 12px; color: #3c4235; }
+
+/* ============================================================
+   7. 结算 / 暂停
+   ============================================================ */
+.result-panel { border-radius: var(--r-m); padding: 14px 22px 18px; }
+.result-title {
+  font-size: 25px;
+  font-weight: 400;
+  letter-spacing: 12px;
+  text-indent: 12px;
+  color: #26301f;
+}
+.result-title.small { font-size: 19px; letter-spacing: 8px; text-indent: 8px; }
+.result-sub {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 2px;
+  color: #857a5e;
+  margin-top: 3px;
+}
+.result-left { border-right: 1px solid rgba(125, 97, 50, 0.22); }
+#result-grade {
+  width: 74px;
+  height: 74px;
+  border-radius: 2px;
+  font-size: 36px;
+  font-weight: 400;
+  font-family: var(--f-brush);
+  color: #fdf6e6;
+  background: linear-gradient(150deg, #b23d27 0%, #9a2e1c 55%, #7d2211 100%);
+  border: 1px solid rgba(253, 246, 230, 0.5);
+  transform: rotate(-5deg);
+  box-shadow: 0 5px 16px rgba(90, 24, 14, 0.4);
+}
+.result-seal-wrap i { font-family: var(--f-serif); font-size: 10px; letter-spacing: 3px; color: #a8341f; }
+#result-table { font-family: var(--f-serif); font-size: 12.5px; }
+#result-table td { padding: 3px 10px; }
+#result-table td:first-child { color: #7d7459; letter-spacing: 1px; }
+#result-table td:last-child { font-family: var(--f-num); font-weight: 400; color: #26301f; letter-spacing: 0.5px; }
+.result-coins-note {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  letter-spacing: 0.5px;
+  color: #857a5e;
+}
+.result-right {
+  border-radius: var(--r-s);
+  padding: 8px 12px;
+  background: rgba(240, 236, 220, 0.6);
+  border: 1px solid rgba(125, 97, 50, 0.26);
+}
+.tip-head {
+  font-size: 12.5px;
+  letter-spacing: 4px;
+  color: #5f8570;
+}
+.tip-img-wrap { border-radius: 2px; border: 1px solid rgba(125, 97, 50, 0.34); }
+#result-tip { font-family: var(--f-serif); font-size: 11.5px; line-height: 1.75; color: #3c4235; }
+
+.pause-card { border-radius: var(--r-m); padding: 20px 22px 22px; }
+.pause-seal {
+  width: 42px;
+  height: 42px;
+  border-radius: 2px;
+  font-size: 20px;
+  margin-bottom: 10px;
+  transform: rotate(-4deg);
+}
+.pause-tip {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  line-height: 1.8;
+  letter-spacing: 0.5px;
+  color: #857a5e;
+}
+.pause-btns { gap: 8px; }
+
+/* ============================================================
+   8. 触屏键 / 提示条 / 横幅
+   ============================================================ */
+.ctl-btn {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 2px;
+  color: #f0e7cf;
+  background: rgba(18, 24, 19, 0.5);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(6px);
+}
+.ctl-btn.main {
+  background: linear-gradient(180deg, rgba(168, 52, 31, 0.8), rgba(110, 30, 18, 0.86));
+  border-color: rgba(226, 142, 118, 0.75);
+}
+.ctl-btn.breathe {
+  background: linear-gradient(180deg, rgba(63, 102, 80, 0.8), rgba(36, 62, 48, 0.86));
+  border-color: rgba(143, 179, 160, 0.7);
+}
+#key-hint {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  color: #ece2c8;
+  background: rgba(14, 20, 16, 0.6);
+  border: 1px solid rgba(185, 154, 95, 0.34);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
+}
+#rotate-hint {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 4px;
+  color: #f2e6c6;
+  background: rgba(16, 22, 17, 0.82);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+  animation: none;
+}
+#move-banner .mb-name {
+  font-size: 32px;
+  letter-spacing: 10px;
+  text-indent: 10px;
+  color: #fdf6e4;
+  text-shadow: 0 2px 10px rgba(16, 22, 16, 0.9), 0 0 24px rgba(220, 193, 137, 0.35);
+}
+#move-banner .mb-sub {
+  font-family: var(--f-serif);
+  font-size: 10.5px;
+  letter-spacing: 6px;
+  text-indent: 6px;
+  padding: 2px 12px;
+  border-radius: 2px;
+  color: #f3e6c4;
+  background: rgba(20, 26, 20, 0.6);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+  box-shadow: none;
+}
+.sync-toast {
+  font-family: var(--f-serif);
+  border-radius: var(--r-s) !important;
+}
+#homescreen-hint {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  border-radius: var(--r-s);
+  color: #f3e9d2;
+  background: rgba(20, 26, 20, 0.86);
+  border: 1px solid rgba(185, 154, 95, 0.5);
+}
+#homescreen-hint button { border-radius: var(--r-s); background: #b99a5f; color: #20180c; }
+
+/* ============================================================
+   9. 教程 / 前情 / 西湖仪式：同一套纸与线
+   ============================================================ */
+.tut-step h3 { font-size: 19px; letter-spacing: 3px; color: #2b3327; }
+.tut-step p { font-family: var(--f-serif); font-size: 13px; line-height: 1.85; color: #4a4d3c; }
+.tut-step .tut-key {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 0.5px;
+  color: #4f7260;
+  background: rgba(95, 133, 112, 0.09);
+  border-radius: 2px;
+}
+.tut-ico {
+  width: 46px;
+  height: 46px;
+  border-radius: 2px;
+  font-size: 22px;
+  transform: rotate(-4deg);
+}
+.tut-dots span { width: 6px; height: 6px; background: rgba(125, 97, 50, 0.28); }
+.tut-dots span.on { background: #a8341f; }
+.tut-live-prompt {
+  border-radius: var(--r-m);
+  border: 1px solid rgba(125, 97, 50, 0.4);
+  outline: none;
+  background: linear-gradient(180deg, rgba(252, 248, 238, 0.97), rgba(243, 234, 213, 0.97));
+  box-shadow: 0 10px 30px rgba(10, 16, 12, 0.42);
+  backdrop-filter: blur(4px);
+}
+.tut-live-prompt.frozen {
+  border-color: rgba(168, 52, 31, 0.5);
+  box-shadow: 0 12px 34px rgba(10, 16, 12, 0.48);
+}
+.tut-live-step {
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #a8341f;
+}
+.tut-live-prompt p { font-family: var(--f-serif); font-size: 12px; line-height: 1.8; color: #4a4d3c; }
+.tut-live-key { font-weight: 600; color: #4a4232; }
+.tut-keycap {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-size: 12px;
+  color: #f4e9cf;
+  background: linear-gradient(180deg, #3a4738, #202a21);
+  border: 1px solid rgba(185, 154, 95, 0.7);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.32);
+}
+.tut-live-hint {
+  border-radius: var(--r-s);
+  font-family: var(--f-serif);
+  font-size: 12px;
+  letter-spacing: 1px;
+  background: rgba(252, 248, 238, 0.96);
+  border: 1px solid rgba(125, 97, 50, 0.34);
+  color: #a8341f;
+  box-shadow: 0 6px 18px rgba(10, 16, 12, 0.34);
+}
+#btn-tut-live-skip { border-radius: var(--r-s); background: rgba(252, 248, 238, 0.92); }
+
+.prologue-act, .xihu-cer-act {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 6px;
+  text-indent: 6px;
+  color: #dcc189;
+}
+.prologue-line, .xihu-cer-line {
+  font-family: var(--f-serif);
+  font-size: 18px;
+  line-height: 1.95;
+  letter-spacing: 1px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.9), 0 0 30px rgba(0, 0, 0, 0.6);
+}
+.prologue-continue, .xihu-cer-continue {
+  font-family: var(--f-serif);
+  font-size: 11.5px;
+  letter-spacing: 3px;
+  color: rgba(242, 232, 204, 0.72);
+}
+.xihu-cer-seal { border-radius: 2px; font-size: 20px; letter-spacing: 5px; }
+.xihu-cer-done { font-family: var(--f-serif); font-size: 13.5px; letter-spacing: 2px; }
+.xihu-cer-sync { font-family: var(--f-serif); font-size: 12px; letter-spacing: 1px; }
+.sync-code { font-family: var(--f-num); letter-spacing: 8px; color: #a8341f; }
+.sync-input {
+  font-family: var(--f-num);
+  border-radius: var(--r-s);
+  border: 1px solid rgba(125, 97, 50, 0.45);
+  background: #fffdf6;
+}
+.sync-status { font-family: var(--f-serif); font-size: 11px; color: #a8341f; }
+.xihu-link { font-family: var(--f-serif); font-size: 11px; color: #4f7260; }
+.xihu-lock-body img,
+.xihu-lock-body img.xihu-banner {
+  border-radius: 2px;
+  border: 1px solid rgba(125, 97, 50, 0.45);
+  outline: none;
+}
+.qr-seal, .xihu-cer-lockbody { border-radius: 2px; }
+
+/* ============================================================
+   10. 短屏兜底
+   ============================================================ */
+body.short-screen .home-title img { height: 62px; }
+body.short-screen .home-title { letter-spacing: 2px; }
+body.short-screen .seal-face { width: 38px; height: 38px; }
+body.short-screen .seal-face span { font-size: 19px; }
+body.short-screen .start-disc { width: 80px; height: 80px; }
+body.short-screen .start-main { font-size: 16px; letter-spacing: 2px; text-indent: 2px; }
+body.short-screen .start-sub { font-size: 8.5px; letter-spacing: 2px; text-indent: 2px; }
+
+/* ============================================================
+   融合 v12.1：导航印章恢复真图（nav_*.png）
+   圆章图本身即按钮面，墨玉方底让位；有图时文字 span 已由 style.css 的
+   .seal-face img + span 规则隐藏。
+   ============================================================ */
+.seal-nav .seal-face:has(> img),
+.seal-nav:hover .seal-face:has(> img),
+.seal-nav:active .seal-face:has(> img) {
+  background: none;
+  border-color: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}

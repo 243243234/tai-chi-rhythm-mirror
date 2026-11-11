@@ -9,31 +9,61 @@
                 层内所有尺寸都按「世界单位」写 px，自动随屏幕缩放
    ============================================================ */
 
-/* 自托管书法字体：马善政毛笔楷书（Ma Shan Zheng，Google Fonts，SIL OFL 开源可商用），
-   woff2 子集仅含游戏实际用字（~483KB），随站自托管，不走 CDN，保证 PC 与手机渲染一致；
-   缺字形（生僻字/符号，如 晅、·、☯）回退 KaiTi。 */
-@font-face {
-  font-family: "Ma Shan Zheng";
-  src: url('../assets/MaShanZheng-subset.woff2') format('woff2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
+/* 字体全部自托管（详见 src/fonts.css，由 tools/fetch-fonts.mjs 生成）：
+   - "Ma Shan Zheng"  书法题字：只用于标题 / 印章 / 判定字等 ≥16px 的大字号
+   - "Noto Serif SC"  宋体：正文与 UI 的可读性骨架
+   - "Cinzel"         数字与拉丁：分数 / 连击 / BPM / 百分比
+   三级分工是本轮「去廉价感」的地基：毛笔字落小字号、数字用毛笔字，都会显土。 */
 
 :root {
-  --gold: #c9a86a;
-  --gold-lit: #ffd76e;
-  --gold-deep: #8c6d2f;
-  --ink: #1a221b;
-  --ink-soft: #2a3528;
-  --paper: #f6efdd;
-  --paper-2: #efe3c4;
-  --jade: #37664c;
-  --jade-lit: #68e7b8;
-  --cinnabar: #b83b26;
-  --cinnabar-deep: #8c2818;
-  --text: #273325;
+  /* ---- 字体族 ---- */
+  --f-brush: "Ma Shan Zheng", "STKaiti", "KaiTi", serif;
+  --f-serif: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --f-num: "Cinzel", "Noto Serif SC", "Songti SC", serif;
+
+  /* ---- 墨 ---- */
+  --ink-950: #0c120d;
+  --ink-900: #131a14;
+  --ink-800: #1c2620;
+  --ink-700: #2a362b;
+
+  /* ---- 宣纸 ---- */
+  --paper-50: #fbf7ec;
+  --paper-100: #f5efdd;
+  --paper-200: #ece2c8;
+  --paper-300: #ddceac;
+
+  /* ---- 描金（整体压暗一档：这是「贵」与「廉价」的分界线） ---- */
+  --gold: #b99a5f;
+  --gold-lit: #dcc189;
+  --gold-deep: #7d6132;
+  --gold-line: rgba(125, 97, 50, 0.34);
+
+  /* ---- 朱砂 ---- */
+  --cinnabar: #a8341f;
+  --cinnabar-deep: #7a2211;
+  --cinnabar-lit: #c4503a;
+
+  /* ---- 青瓷（唯一保留的冷色，只做「阴」与次要信息） ---- */
+  --celadon: #5f8570;
+  --celadon-lit: #8fb3a0;
+
+  /* 兼容旧变量名（历史样式仍在引用，值一并压柔） */
+  --jade: #3f6650;
+  --jade-lit: #8fb3a0;
+
+  /* ---- 文字 ---- */
+  --text: #232a22;
+  --text-2: #5b6353;
+  --text-3: #8a8468;
   --text-soft: #5e6d59;
+
+  /* ---- 统一投影 / 圆角 / 间距 ---- */
+  --r-s: 3px;
+  --r-m: 4px;
+  --shadow-1: 0 2px 8px rgba(12, 18, 13, 0.22);
+  --shadow-2: 0 10px 26px rgba(12, 18, 13, 0.3);
+  --shadow-3: 0 20px 52px rgba(8, 12, 9, 0.5);
 }
 
 * {
@@ -54,9 +84,10 @@ html, body {
 }
 
 body {
-  font-family: "Ma Shan Zheng", "STKaiti", "KaiTi", "Songti SC", serif;
+  font-family: var(--f-serif);
   color: var(--paper);
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 #app {

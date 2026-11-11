@@ -1696,7 +1696,7 @@ function renderSongList() {
         '<div class="sri-meta">难度 <span class="stars">' + (DIFF_STARS[song.difficulty] || '★★☆') + '</span> · ' +
           song.bpm + ' BPM' + (best ? ' · 最高 ' + best.score.toLocaleString() : '') +
         '</div>' +
-        (coinLocked ? '<div class="sri-lock">🔒 需墨币 ' + SONG5_UNLOCK_COST + ' 解锁（当前 ' + loadCoins() + '）</div>' : '') +
+        (coinLocked ? '<div class="sri-lock">需墨币 ' + SONG5_UNLOCK_COST + ' 解锁（当前 ' + loadCoins() + '）</div>' : '') +
       '</div>' +
       '<div class="sri-seal' + (best ? '' : ' none') + '">' +
         (best ? (GRADE_SEALS[best.grade] || '妙') : '未修') +
@@ -1754,7 +1754,7 @@ function selectSong(i, keepDiff) {
   const ln = $('detail-lock-note');
   if (ln) {
     if (song.id === 5 && !isSongUnlocked(5)) {
-      ln.textContent = '🔒 冬至 · 子时需墨币 ' + SONG5_UNLOCK_COST + ' 解锁（当前 ' + loadCoins() + '）';
+      ln.textContent = '冬至 · 子时需墨币 ' + SONG5_UNLOCK_COST + ' 解锁（当前 ' + loadCoins() + '）';
       ln.classList.remove('hidden');
     } else ln.classList.add('hidden');
   }
@@ -1806,7 +1806,7 @@ function refreshDiffUI() {
       p.classList.toggle('active', d === selectedDiff);
       p.classList.add('locked');
       const iEl = p.querySelector('i');
-      if (iEl) iEl.textContent = '🔒 未解锁';
+      if (iEl) iEl.textContent = '未解锁';
     }
   });
   const note = $('detail-diff-note');

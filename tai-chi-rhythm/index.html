@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0a0f0b">
+<title>太极八段锦 · 东方奇幻音游</title>
+<link rel="stylesheet" href="src/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ============ 全屏背景层：整张画铺满视口，没有画框 ============ -->
+  <div id="bg-layer">
+    <div class="bg-img" data-bg="home"></div>
+    <div class="bg-img" data-bg="home-xihu"></div>
+    <div class="bg-img" data-bg="menu"></div>
+    <div class="bg-img" data-bg="play"></div>
+    <div class="bg-img" data-bg="night"></div>
+    <div class="bg-img" data-bg="fever"></div>
+    <div class="bg-img" data-bg="xihu"></div>
+    <div id="bg-wash"></div>
+    <div id="bg-vignette"></div>
+  </div>
+
+  <!-- ============ 世界层：600 单位高，按屏幕等比缩放；所有内容都在这一层里 ============ -->
+  <div id="world">
+    <canvas id="game"></canvas>
+
+    <!-- ---------------------- 局内 HUD：黑金卷轴横梁 ---------------------- -->
+    <div id="hud" class="hidden">
+      <div class="hud-bar">
+        <span class="hud-rod left"></span>
+        <span class="hud-rod right"></span>
+
+        <div class="hud-left">
+          <div class="hud-songline">
+            <span id="hud-song-title">冬至 · 子时</span>
+            <span id="hud-diff-seal" class="hud-seal">入室</span>
+          </div>
+          <div class="hud-scoreline">
+            <span id="hud-score">000000</span>
+            <span class="hud-combo-lbl">连击 <b id="hud-combo">0</b></span>
+          </div>
+        </div>
+
+        <div class="hud-center">
+          <div class="hud-meter">
+            <span class="meter-label">气息</span>
+            <span class="meter-track"><i id="bar-disorder" class="meter-fill breath"></i></span>
+            <span id="disorder-text" class="meter-val">平稳</span>
+          </div>
+          <div class="hud-meter">
+            <span class="meter-label">阴阳</span><b id="phase-text" class="phase-yin">阴</b>
+            <span class="meter-track"><i id="bar-energy" class="meter-fill energy"></i></span>
+            <span id="energy-text" class="meter-val">0%</span>
+          </div>
+          <div class="hud-disc">
+            <span class="hud-disc-halo"></span>
+            <img id="hud-taichi" src="assets/taichi_koi.png" alt="">
+          </div>
+        </div>
+
+        <div class="hud-right">
+          <div id="hud-fever" class="hidden">天人合一</div>
+          <button id="btn-pause" class="hud-btn"><span>❚❚</span>暂停</button>
+          <button id="btn-exit" class="hud-btn quit"><span>✕</span>退出</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------------------- 首页 ---------------------- -->
+    <div id="screen-home" class="world-screen">
+      <div class="home-tools">
+        <span id="home-coins" class="home-coins" title="墨币：打歌结算获得，可解锁冬至关"><img src="assets/coin_mobi.png" class="coin-img" alt="" onerror="this.remove()">墨币 <b id="home-coins-num">0</b></span>
+        <button id="btn-mute" class="gold-icon-btn" title="音乐开关">♪</button>
+        <button id="btn-fullscreen" class="gold-icon-btn" title="全屏切换">⛶</button>
+        <button id="btn-help" class="gold-icon-btn" title="新手引导">?</button>
+      </div>
+
+      <div class="home-title-block">
+        <span class="home-title-seal"><img src="assets/seal_tai.png" alt="太" onerror="this.remove()"><span>太</span></span>
+        <h1 class="home-title"><img src="assets/title_main.png" alt="太极八段锦" onerror="this.remove()"><span>太极八段锦</span></h1>
+        <div class="home-subtitle">
+          <span class="home-rule"></span>
+          <span class="home-sub-txt"><img src="assets/title_sub.png" alt="东方奇幻音游" onerror="this.remove()"><span>东方奇幻音游</span></span>
+          <span class="home-rule"></span>
+        </div>
+        <p class="home-tagline">墨 韵 流 转 · 顺 时 导 引</p>
+      </div>
+
+      <button id="btn-start" class="home-start" title="踏入江湖 · 开始修行">
+        <span class="start-halo"></span>
+        <span class="start-ring outer"></span>
+        <span class="start-ring inner"></span>
+        <span class="start-disc">
+          <span class="start-main">踏入江湖</span>
+          <span class="start-sub">开始游戏</span>
+        </span>
+      </button>
+
+      <div class="home-bottom">
+        <div class="seal-nav-group left">
+          <button class="seal-nav" id="nav-story"><span class="seal-face"><img src="assets/nav_story.png" alt="卷" onerror="this.remove()"><span>卷</span></span><span class="seal-label">故事</span></button>
+          <button class="seal-nav" id="nav-songs"><span class="seal-face"><img src="assets/nav_songs.png" alt="谱" onerror="this.remove()"><span>谱</span></span><span class="seal-label">乐谱</span></button>
+          <button class="seal-nav" id="nav-howto"><span class="seal-face"><img src="assets/nav_howto.png" alt="诀" onerror="this.remove()"><span>诀</span></span><span class="seal-label">秘笈</span></button>
+          <button class="seal-nav" id="nav-music"><span class="seal-face"><img src="assets/nav_music.png" alt="音" onerror="this.remove()"><span>音</span></span><span class="seal-label">设置</span></button>
+        </div>
+
+        <div class="home-server-bar" id="btn-quick-play" title="点击启程 · 选曲修行">
+          <span>点击选择服务器：</span><b>【竹林听雨】</b>
+        </div>
+
+        <div class="seal-nav-group right">
+          <button class="seal-nav" id="nav-records"><span class="seal-face"><img src="assets/nav_archive.png" alt="札" onerror="this.remove()"><span>札</span></span><span class="seal-label">手札</span></button>
+          <button class="seal-nav" id="nav-practice"><span class="seal-face"><img src="assets/nav_practice.png" alt="修" onerror="this.remove()"><span>修</span></span><span class="seal-label">修行</span></button>
+          <button class="seal-nav" id="nav-about"><span class="seal-face"><img src="assets/nav_about.png" alt="缘" onerror="this.remove()"><span>缘</span></span><span class="seal-label">关于</span></button>
+          <button class="seal-nav" id="nav-more"><span class="seal-face"><img src="assets/nav_book.png" alt="经" onerror="this.remove()"><span>经</span></span><span class="seal-label">八段锦</span></button>
+        </div>
+      </div>
+
+      <!-- 扫码即玩 -->
+      <div id="home-qr" class="home-qr">
+        <span class="qr-seal">扫</span>
+        <img id="qr-play-img" alt="扫码即玩" onerror="this.style.display='none'">
+        <span class="qr-label">扫码即玩</span>
+        <span class="qr-sub">手机横屏体验更佳</span>
+        <a id="home-qr-link" class="qr-link" href="#" target="_blank" rel="noopener"></a>
+      </div>
+
+      <!-- 弹窗：心诀 -->
+      <div id="home-howto" class="paper-modal hidden">
+        <div class="modal-card">
+          <div class="modal-head">
+            <span class="modal-title">八段锦修习心诀</span>
+            <button class="modal-close" id="btn-close-howto">✕</button>
+          </div>
+          <div class="modal-body">
+            <p><b class="dot red"></b><strong>单点音符</strong>：点按 / 空格 → 太极推掌</p>
+            <p><b class="dot jade"></b><strong>滑动音符</strong>：按箭头方向滑动 / ← → 键 → 闪身步</p>
+            <p><b class="dot gold"></b><strong>长按音符</strong>：按住不放直到结束 → 站桩吐纳</p>
+            <p class="modal-note">✦ 连续踩准累积阴阳灵气，集满即「天人合一」，水墨比武、得分翻倍。Esc / P 暂停。</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 弹窗：故事 -->
+      <div id="home-story" class="paper-modal hidden">
+        <div class="modal-card">
+          <div class="modal-head">
+            <span class="modal-title">仙境缘起</span>
+            <button class="modal-close" id="btn-close-story">✕</button>
+          </div>
+          <div class="modal-body">
+            <p>天地有四时，人身有经络。晨光卯时肝经旺，日中正午心火盛，夜深子时肾水藏。</p>
+            <p>以韵御气，动静相兼。小道童踏浪而行，推掌化解疲乏，闪身避开心火，站桩固本培元。每一次律动，都是一场滋养身心的调息之旅。</p>
+            <div class="tut-nav">
+              <button id="btn-story-replay" class="tut-btn gold">重看前情提要</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 弹窗：创作团队 -->
+      <div id="home-members" class="paper-modal hidden">
+        <div class="modal-card mini">
+          <div class="modal-head">
+            <span class="modal-title">创作团队</span>
+            <button class="modal-close" id="btn-close-members">✕</button>
+          </div>
+          <div class="modal-body">
+            <p class="team-names">戚焱晅 · 沈思清 · 程嘉慧 · 雷悦</p>
+            <p class="team-note">国风水墨太极音游 · 碎片化健康养生</p>
+          </div>
+        </div>
+      </div>
+      <div id="home-handbook" class="paper-modal hidden">
+        <div class="modal-card wide">
+          <div class="modal-head">
+            <span class="modal-title">成就手札</span>
+            <button class="modal-close" id="btn-close-handbook">✕</button>
+          </div>
+          <div id="hb-body"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------------------- 曲谱阁（选曲） ---------------------- -->
+    <div id="screen-menu" class="world-screen hidden">
+      <div class="qupu-topbar">
+        <button id="btn-home2" class="wood-board-btn"><span>❮</span> 返回</button>
+        <div class="qupu-titles">
+          <h2 class="qupu-main">曲 谱 阁</h2>
+          <span class="qupu-sub">聆 音 寻 道</span>
+        </div>
+        <div class="qupu-currencies">
+          <span class="curr"><img src="assets/coin_mobi.png" class="curr-coin-img" alt="" onerror="this.remove()">墨币 <b id="qupu-coins-num">0</b></span>
+        </div>
+      </div>
+
+      <div class="qupu-body">
+        <!-- 左侧立轴挂画 -->
+        <div class="qupu-stand">
+          <span class="stand-rod top"></span>
+          <div class="stand-paper">
+            <div class="stand-art"><img id="detail-img" src="assets/song_spring.jpg" alt=""></div>
+            <h3 id="detail-name">立春 · 卯时</h3>
+            <p id="detail-meta" class="detail-meta">曲：云水谣 / 词：古意</p>
+
+            <div class="detail-tags">
+              <span id="detail-sub" class="tag-jade">肝经 · 疏肝理气</span>
+              <span id="detail-bpm-tag" class="tag-gold">72 BPM · 64 拍</span>
+            </div>
+
+            <div class="detail-brocade">
+              <span class="brocade-head">☯ <b id="detail-action">双手托天理三焦</b></span>
+              <p id="detail-desc">晨光初起，双手上托。提气吐纳，通调全身气机。</p>
+            </div>
+
+            <div class="detail-record">
+              <span id="detail-best-seal" class="record-seal">未挑战</span>
+              <div class="record-lines">
+                <span>最高修为 <b id="detail-best-score">000000</b></span>
+                <span>最大连击 <b id="detail-best-combo">0 连</b></span>
+              </div>
+            </div>
+
+            <div class="diff-row">
+              <button class="diff-stamp" data-diff="easy"><b>初学</b><i>简单</i></button>
+              <button class="diff-stamp active" data-diff="normal"><b>入室</b><i>普通</i></button>
+              <button class="diff-stamp" data-diff="hard"><b>天人</b><i>困难</i></button>
+            </div>
+            <p id="detail-lock-note" class="detail-note hidden"></p>
+            <p id="detail-diff-note" class="detail-note hidden"></p>
+
+            <button id="btn-detail-start" class="start-disc-btn">
+              <span class="sdb-ring"></span>
+              <span class="sdb-text"><b>开始修行</b><i>演 练</i></span>
+            </button>
+            <button id="btn-detail-xihu-cer" class="tut-btn ghost hidden" style="margin-top:8px">重看解锁仪式</button>
+          </div>
+          <span class="stand-rod bottom"></span>
+        </div>
+
+        <!-- 右侧横向卷轴列表 -->
+        <div class="qupu-listwrap">
+          <div class="list-head">
+            <span class="list-tag">✦ 四时律动 · 顺时导引 ✦</span>
+            <span class="list-hint">单击预览 · 双击启程 · 滚轮 / ↑↓ 切换</span>
+          </div>
+          <div id="song-list" class="song-list"><!-- JS 渲染 --></div>
+        </div>
+      </div>
+    </div>
+
+      <!-- 冬至关：墨币解锁 -->
+      <div id="song-unlock" class="paper-modal hidden">
+        <div class="modal-card">
+          <div class="modal-head">
+            <span class="modal-title">冬至 · 子时</span>
+            <button class="modal-close" id="btn-close-song-unlock">✕</button>
+          </div>
+          <div class="modal-body">
+            <p>冬至子时，夜色最深——此关需墨币解锁，一次解锁，永久开启。</p>
+            <p class="modal-note" id="song-unlock-cost"></p>
+            <p class="modal-note" id="song-unlock-balance"></p>
+            <div class="tut-nav">
+              <button id="btn-song-unlock-cancel" class="tut-btn ghost">以后再说</button>
+              <button id="btn-song-unlock-confirm" class="tut-btn gold">确认解锁</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 西湖隐藏关：扫码解锁 -->
+      <div id="xihu-lock" class="paper-modal hidden">
+        <div class="modal-card">
+          <div class="modal-head">
+            <span class="modal-title">西湖 · 隐藏关</span>
+            <button class="modal-close" id="btn-close-xihu">✕</button>
+          </div>
+          <div class="modal-body xihu-lock-body">
+            <img class="xihu-banner" src="assets/banner_xihu.png" alt="西湖" onerror="this.remove()">
+            <p>断桥残雪，湖光潋滟——西湖隐藏关尚未解锁。</p>
+            <img id="qr-xihu-img" alt="扫码解锁西湖关" onerror="this.style.display='none'">
+            <p class="modal-note">手机扫码即可解锁（或直接打开下方链接）：</p>
+            <p id="xihu-link" class="xihu-link"></p>
+            <p class="modal-note">解锁一次，永久开启；通关后手札里会盖一枚断桥残雪印。</p>
+            <div class="xihu-sync">
+              <p class="modal-note">电脑同步：手机扫码完成仪式后，电脑自动解锁（约 2 秒）。</p>
+              <p class="modal-note">同步码：<b id="xihu-sync-code" class="sync-code">------</b></p>
+              <div class="sync-manual">
+                <input id="xihu-sync-input" class="sync-input" maxlength="6" placeholder="输入手机上的 6 位同步码" autocomplete="off">
+                <button id="btn-xihu-sync-manual" class="tut-btn gold">同步解锁</button>
+              </div>
+              <p id="xihu-sync-status" class="sync-status"></p>
+            </div>
+            <button id="btn-xihu-cer-preview" class="tut-btn gold" style="margin:8px auto 0;display:block">▶ 先看一段西湖故事</button>
+          </div>
+        </div>
+      </div>
+
+    <!-- 新手教程：首次进入自动弹出，可跳过 -->
+    <div id="tutorial-modal" class="paper-modal hidden">
+      <div class="modal-card tut-card">
+        <div class="modal-head">
+          <span class="modal-title">初入江湖 · 新手引导</span>
+          <button class="modal-close" id="btn-tut-close">✕</button>
+        </div>
+        <div class="modal-body tut-body">
+          <div class="tut-step" data-step="0">
+            <div class="tut-ico">推</div>
+            <h3>第一步 · 推掌点按</h3>
+            <p>红色圆牌顺墨河落到太极盘时，点按它（或按空格）。踩准得「准」，阴阳能量 +9。</p>
+            <p class="tut-key">操作：点按 / 空格键</p>
+          </div>
+          <div class="tut-step hidden" data-step="1">
+            <div class="tut-ico">闪</div>
+            <h3>第二步 · 闪身步滑动</h3>
+            <p>利刃形的音符来了，顺着箭头方向滑动（或按 ← →）。借力卸力，躲得干净利落。</p>
+            <p class="tut-key">操作：左右滑动 / ← → 键</p>
+          </div>
+          <div class="tut-step hidden" data-step="2">
+            <div class="tut-ico">吐</div>
+            <h3>第三步 · 站桩吐纳长按</h3>
+            <p>长条音符是站桩：按住不放吸气蓄力，蓄满再松手呼气发功。中途松手会断。</p>
+            <p class="tut-key">操作：按住不放 / 长按空格</p>
+          </div>
+          <div class="tut-step hidden" data-step="3">
+            <div class="tut-ico">合</div>
+            <h3>第四步 · 阴阳能量与天人合一</h3>
+            <p>连击攒阴阳能量，攒满进入「天人合一」：水墨小人出池比武，全场双倍得分。太极盘每 4 拍轮转一次阴阳，音符上的金环（阳）蓝环（阴）与盘面相位一致时踩准，得「轮转」加成。</p>
+            <p class="tut-key">失误只会气息紊乱，不扣血；差一点点没踩准会「化劲」，不断连击</p>
+          </div>
+          <div class="tut-dots"><span class="on"></span><span></span><span></span><span></span></div>
+          <div class="tut-nav">
+            <button id="btn-tut-prev" class="tut-btn ghost hidden">上一步</button>
+            <button id="btn-tut-skip" class="tut-btn ghost">跳过</button>
+            <button id="btn-tut-next" class="tut-btn gold">下一步</button>
+            <button id="btn-tut-done" class="tut-btn gold hidden">知道了，开始</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 首次进入：实战教程欢迎卡（v7） -->
+    <div id="tut-welcome" class="paper-modal hidden">
+      <div class="modal-card tut-card">
+        <div class="modal-head">
+          <span class="modal-title">初入江湖 · 新手引导</span>
+          <button class="modal-close" id="btn-tut-welcome-close">✕</button>
+        </div>
+        <div class="modal-body tut-body">
+          <p>第一次来？跟着小道童打一局<b>实战</b>：正常速度进场，音符快到太极盘时会<b>慢下来定住</b>，其他地方变暗、只留要按的键亮着——跟着提示按，推掌、闪身、站桩一次学会。</p>
+          <p class="modal-note">实战教程约 1 分钟，随时可以跳过；跳过后直接进正常游戏。</p>
+          <div class="tut-nav">
+            <button id="btn-tut-welcome-review" class="tut-btn ghost">快速回顾</button>
+            <button id="btn-tut-welcome-skip" class="tut-btn ghost">跳过</button>
+            <button id="btn-tut-welcome-start" class="tut-btn gold">开始实战教程</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 实战教程完成卡（v7） -->
+    <div id="tut-done" class="paper-modal hidden">
+      <div class="modal-card tut-card">
+        <div class="modal-head">
+          <span class="modal-title">教程完成 · 初窥门径</span>
+          <button class="modal-close" id="btn-tut-done-close">✕</button>
+        </div>
+        <div class="modal-body tut-body">
+          <p>推掌、闪身、站桩都学会了！连击攒阴阳能量，攒满就能「天人合一」。现在去正式修习吧——墨币和印章都等着你。</p>
+          <div class="tut-nav">
+            <button id="btn-tut-done-menu" class="tut-btn ghost">返回曲谱阁</button>
+            <button id="btn-tut-done-start" class="tut-btn gold">开始正式修习</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 故事前情提要：动漫开场式（v7） -->
+    <div id="prologue" class="hidden">
+      <div class="prologue-bg" id="prologue-bg"></div>
+      <div class="prologue-scrim"></div>
+      <div class="prologue-ink" id="prologue-ink"></div>
+      <div class="prologue-text">
+        <span class="prologue-act" id="prologue-act"></span>
+        <p class="prologue-line" id="prologue-line"></p>
+        <span class="prologue-continue hidden" id="prologue-continue">点击继续 ▸</span>
+      </div>
+      <button id="btn-prologue-skip" class="tut-btn ghost">跳过前情</button>
+    </div>
+
+    <!-- 西湖解锁仪式：扫码解锁的独立解说界面（v9） -->
+    <div id="xihu-ceremony" class="hidden">
+      <div class="xihu-cer-bg" id="xihu-cer-bg"></div>
+      <div class="xihu-cer-scrim"></div>
+      <div class="xihu-cer-ink" id="xihu-cer-ink"></div>
+      <div class="xihu-cer-text" id="xihu-cer-text">
+        <span class="xihu-cer-act" id="xihu-cer-act"></span>
+        <p class="xihu-cer-line" id="xihu-cer-line"></p>
+        <span class="xihu-cer-continue hidden" id="xihu-cer-continue">点击继续 ▸</span>
+      </div>
+      <div class="xihu-cer-lock hidden" id="xihu-cer-lock">
+        <div class="xihu-cer-lockwrap" id="xihu-cer-lockwrap">
+          <div class="xihu-cer-lockanim" id="xihu-cer-lockanim">
+            <div class="xihu-cer-shackle" id="xihu-cer-shackle"></div>
+            <div class="xihu-cer-lockbody"><span>湖</span></div>
+          </div>
+          <div class="xihu-cer-burst" id="xihu-cer-burst"></div>
+        </div>
+        <div class="xihu-cer-seal hidden" id="xihu-cer-seal">西湖<br>已解锁</div>
+        <p class="xihu-cer-done hidden" id="xihu-cer-done">断桥残雪印已盖 · 西湖隐藏关已开启</p>
+        <p class="xihu-cer-sync hidden" id="xihu-cer-sync"></p>
+        <div class="xihu-cer-cta hidden" id="xihu-cer-cta">
+          <button id="btn-xihu-cer-play" class="tut-btn gold">进入西湖关</button>
+          <button id="btn-xihu-cer-menu" class="tut-btn ghost">返回选曲</button>
+        </div>
+      </div>
+      <button id="btn-xihu-cer-skip" class="tut-btn ghost">跳过仪式</button>
+    </div>
+
+    <!-- ---------------------- 结算 ---------------------- -->
+    <div id="screen-result" class="world-screen hidden">
+      <div class="result-panel">
+        <h2 class="result-title">一 曲 打 完</h2>
+        <p id="result-song" class="result-sub"></p>
+
+        <div class="result-cols">
+          <div class="result-left">
+            <div class="result-seal-wrap">
+              <span id="result-grade">甲</span>
+              <i>太极印</i>
+            </div>
+            <table id="result-table">
+              <tr><td>修炼得分</td><td id="r-score">0</td></tr>
+              <tr><td>最高连击</td><td id="r-combo">0</td></tr>
+              <tr><td>准 / 可 / 乱</td><td id="r-counts">0 / 0 / 0</td></tr>
+              <tr><td>心法契合</td><td id="r-acc">0%</td></tr>
+              <tr><td>本次获得墨币</td><td id="r-coins">0</td></tr>
+              <tr><td>当前共有墨币</td><td id="r-coins-total">0</td></tr>
+            </table>
+            <p id="result-coins-note" class="result-coins-note"></p>
+          </div>
+          <div class="result-right">
+            <div class="tip-head">✦ 领悟八段锦养生诀 ✦</div>
+            <div class="tip-img-wrap"><img id="result-tip-img" alt=""></div>
+            <p id="result-tip"></p>
+          </div>
+        </div>
+
+        <div class="result-btns">
+          <button id="btn-again" class="big-btn">再来一曲</button>
+          <button id="btn-menu" class="big-btn ghost">返回曲谱阁</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------------------- 暂停 ---------------------- -->
+    <div id="screen-pause" class="world-screen hidden">
+      <div class="pause-card">
+        <span class="pause-seal">定</span>
+        <h2 class="result-title small">气 息 暂 歇</h2>
+        <p class="pause-tip">吐纳调息，定心凝神；准备就绪时再继续修行。</p>
+        <div class="pause-btns">
+          <button id="btn-resume" class="big-btn">继续修行</button>
+          <button id="btn-restart" class="big-btn ghost">重新开始</button>
+          <button id="btn-quit" class="big-btn ghost">退出选曲</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------------------- 触屏虚拟按键（只对触屏设备显示） ---------------------- -->
+    <div id="touch-controls" class="hidden">
+      <button id="btn-left" class="ctl-btn">◀ 闪身</button>
+      <button id="btn-tap" class="ctl-btn main">太极推掌</button>
+      <button id="btn-hold" class="ctl-btn breathe">站桩吐纳</button>
+      <button id="btn-right" class="ctl-btn">闪身 ▶</button>
+    </div>
+
+    <!-- 键鼠提示（进曲后短暂浮现） -->
+    <div id="key-hint">空格 推掌 · ← → 闪身步 · 按住 站桩吐纳 · Esc 暂停</div>
+
+    <!-- 新手实战教程：局内提示 + 跳过（v8） -->
+    <div id="tut-live" class="hidden">
+      <!-- 慢放聚光罩（v8）：变暗全场，只留目标音符与要按的键；遮罩孔位由 JS 每帧跟随 -->
+      <svg id="tut-spot" class="hidden" viewBox="0 0 600 600" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <radialGradient id="tut-hole-fade">
+            <stop offset="0.55" stop-color="#000"/>
+            <stop offset="1" stop-color="#fff"/>
+          </radialGradient>
+          <mask id="tut-spot-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="600" height="600">
+            <rect id="tut-mask-bg" x="0" y="0" width="600" height="600" fill="#fff"/>
+            <circle id="tut-hole-note" r="82" fill="url(#tut-hole-fade)"/>
+            <rect id="tut-hole-btn" rx="16" fill="url(#tut-hole-fade)"/>
+          </mask>
+        </defs>
+        <rect id="tut-spot-dim" x="0" y="0" width="600" height="600" fill="rgba(6,10,8,0.84)" mask="url(#tut-spot-mask)"/>
+      </svg>
+      <div class="tut-live-prompt hidden" id="tut-live-prompt">
+        <span class="tut-live-step" id="tut-live-step"></span>
+        <p id="tut-live-desc"></p>
+        <p class="tut-live-key" id="tut-live-key"></p>
+        <button id="btn-tut-live-done" class="tut-btn gold hidden">知道了，开始修习</button>
+      </div>
+      <p class="tut-live-hint hidden" id="tut-live-hint"></p>
+      <button id="btn-tut-live-skip" class="tut-btn ghost">跳过教程</button>
+    </div>
+
+    <!-- 招式名横幅 -->
+    <div id="move-banner"><span class="mb-name">双手托天理三焦</span><span class="mb-sub">招 式 已 成</span></div>
+
+    <!-- iPhone 全屏提示：添加到主屏幕才是真全屏 -->
+    <div id="homescreen-hint" class="hidden">iPhone 全屏玩法：点分享 → 添加到主屏幕，从桌面图标打开即全屏横屏 <button id="btn-close-hint">知道了</button></div>
+
+    <!-- ---------------------- 竖屏提示 ---------------------- -->
+    <div id="rotate-hint" class="hidden">横 屏 体 验 更 佳</div>
+    <!-- 跨端同步成功提示（v10） -->
+    <div id="sync-toast" class="sync-toast hidden"></div>
+  </div>
+</div>
+
+<script src="src/qrcode.min.js"></script>
+<script src="src/core.js"></script>
+<script src="src/fx.js"></script>
+<script src="src/scene.js"></script>
+<script src="src/game.js"></script>
+</body>
+</html>

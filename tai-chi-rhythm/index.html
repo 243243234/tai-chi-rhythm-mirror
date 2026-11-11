@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0a0f0b">
 <title>太极八段锦 · 东方奇幻音游</title>
+<link rel="stylesheet" href="src/fonts.css">
 <link rel="stylesheet" href="src/style.css">
+<link rel="stylesheet" href="src/theme.css">
 </head>
 <body>
 <div id="app">
@@ -57,14 +59,20 @@
           </div>
           <div class="hud-disc">
             <span class="hud-disc-halo"></span>
-            <img id="hud-taichi" src="assets/taichi_koi.png" alt="">
+            <svg id="hud-taichi" viewBox="0 0 100 100" aria-hidden="true">
+              <circle cx="50" cy="50" r="45" fill="#f3ead4"></circle>
+              <path d="M50 5a45 45 0 0 0 0 90 22.5 22.5 0 0 0 0-45 22.5 22.5 0 0 1 0-45z" fill="#1b241c"></path>
+              <circle cx="50" cy="27.5" r="5.6" fill="#f3ead4"></circle>
+              <circle cx="50" cy="72.5" r="5.6" fill="#1b241c"></circle>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#c8ac72" stroke-width="2.6"></circle>
+            </svg>
           </div>
         </div>
 
         <div class="hud-right">
           <div id="hud-fever" class="hidden">天人合一</div>
-          <button id="btn-pause" class="hud-btn"><span>❚❚</span>暂停</button>
-          <button id="btn-exit" class="hud-btn quit"><span>✕</span>退出</button>
+          <button id="btn-pause" class="hud-btn"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7.5" y="5.5" width="3" height="13" rx="0.8"/><rect x="13.5" y="5.5" width="3" height="13" rx="0.8"/></svg></span>暂停</button>
+          <button id="btn-exit" class="hud-btn quit"><span class="ico"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg></span>退出</button>
         </div>
       </div>
     </div>
@@ -73,9 +81,15 @@
     <div id="screen-home" class="world-screen">
       <div class="home-tools">
         <span id="home-coins" class="home-coins" title="墨币：打歌结算获得，可解锁冬至关"><img src="assets/coin_mobi.png" class="coin-img" alt="" onerror="this.remove()">墨币 <b id="home-coins-num">0</b></span>
-        <button id="btn-mute" class="gold-icon-btn" title="音乐开关">♪</button>
-        <button id="btn-fullscreen" class="gold-icon-btn" title="全屏切换">⛶</button>
-        <button id="btn-help" class="gold-icon-btn" title="新手引导">?</button>
+        <button id="btn-mute" class="gold-icon-btn" title="音乐开关" aria-label="音乐开关">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.2L12 5.5v13L7.2 14.5H4z" /><path class="ico-wave" d="M16 8.6a4.8 4.8 0 0 1 0 6.8" /><path class="ico-slash" d="M17 7.5L21.5 16.5" /></svg>
+        </button>
+        <button id="btn-fullscreen" class="gold-icon-btn" title="全屏切换" aria-label="全屏切换">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4.5h5" /><path d="M20 9V4.5h-5" /><path d="M4 15v4.5h5" /><path d="M20 15v4.5h-5" /></svg>
+        </button>
+        <button id="btn-help" class="gold-icon-btn" title="新手引导" aria-label="新手引导">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.6" /><path d="M9.4 9.4a2.7 2.7 0 0 1 5.2.9c0 1.8-2.6 2.1-2.6 3.7" /><circle class="ico-dot" cx="12" cy="16.6" r="0.95" /></svg>
+        </button>
       </div>
 
       <div class="home-title-block">
@@ -108,7 +122,9 @@
         </div>
 
         <div class="home-server-bar" id="btn-quick-play" title="点击启程 · 选曲修行">
-          <span>点击选择服务器：</span><b>【竹林听雨】</b>
+          <span class="hsb-rule"></span>
+          <span class="hsb-txt">竹林听雨 · 第一境</span>
+          <span class="hsb-rule"></span>
         </div>
 
         <div class="seal-nav-group right">
@@ -139,7 +155,7 @@
             <p><b class="dot red"></b><strong>单点音符</strong>：点按 / 空格 → 太极推掌</p>
             <p><b class="dot jade"></b><strong>滑动音符</strong>：按箭头方向滑动 / ← → 键 → 闪身步</p>
             <p><b class="dot gold"></b><strong>长按音符</strong>：按住不放直到结束 → 站桩吐纳</p>
-            <p class="modal-note">✦ 连续踩准累积阴阳灵气，集满即「天人合一」，水墨比武、得分翻倍。Esc / P 暂停。</p>
+            <p class="modal-note">连续踩准累积阴阳灵气，集满即「天人合一」，水墨比武、得分翻倍。Esc / P 暂停。</p>
           </div>
         </div>
       </div>
@@ -213,7 +229,7 @@
             </div>
 
             <div class="detail-brocade">
-              <span class="brocade-head">☯ <b id="detail-action">双手托天理三焦</b></span>
+              <span class="brocade-head"><b id="detail-action">双手托天理三焦</b></span>
               <p id="detail-desc">晨光初起，双手上托。提气吐纳，通调全身气机。</p>
             </div>
 
@@ -245,7 +261,7 @@
         <!-- 右侧横向卷轴列表 -->
         <div class="qupu-listwrap">
           <div class="list-head">
-            <span class="list-tag">✦ 四时律动 · 顺时导引 ✦</span>
+            <span class="list-tag">四时律动 · 顺时导引</span>
             <span class="list-hint">单击预览 · 双击启程 · 滚轮 / ↑↓ 切换</span>
           </div>
           <div id="song-list" class="song-list"><!-- JS 渲染 --></div>
@@ -295,7 +311,7 @@
               </div>
               <p id="xihu-sync-status" class="sync-status"></p>
             </div>
-            <button id="btn-xihu-cer-preview" class="tut-btn gold" style="margin:8px auto 0;display:block">▶ 先看一段西湖故事</button>
+            <button id="btn-xihu-cer-preview" class="tut-btn gold" style="margin:8px auto 0;display:block">▸ 先看一段西湖故事</button>
           </div>
         </div>
       </div>
@@ -444,7 +460,7 @@
             <p id="result-coins-note" class="result-coins-note"></p>
           </div>
           <div class="result-right">
-            <div class="tip-head">✦ 领悟八段锦养生诀 ✦</div>
+            <div class="tip-head">领悟八段锦养生诀</div>
             <div class="tip-img-wrap"><img id="result-tip-img" alt=""></div>
             <p id="result-tip"></p>
           </div>
@@ -476,7 +492,7 @@
       <button id="btn-left" class="ctl-btn">◀ 闪身</button>
       <button id="btn-tap" class="ctl-btn main">太极推掌</button>
       <button id="btn-hold" class="ctl-btn breathe">站桩吐纳</button>
-      <button id="btn-right" class="ctl-btn">闪身 ▶</button>
+      <button id="btn-right" class="ctl-btn">闪身 ▸</button>
     </div>
 
     <!-- 键鼠提示（进曲后短暂浮现） -->
@@ -526,6 +542,7 @@
 <script src="src/core.js"></script>
 <script src="src/fx.js"></script>
 <script src="src/scene.js"></script>
+<script src="src/stagefx.js"></script>
 <script src="src/game.js"></script>
 </body>
 </html>

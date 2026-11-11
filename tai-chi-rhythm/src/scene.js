@@ -9,22 +9,27 @@
      → 打击特效 / 连击字牌 / 全屏闪光
    ============================================================ */
 
-/* ---------------- 太极阴阳（程序化） ---------------- */
+/* ---------------- 太极阴阳（程序化 · v11 墨白描金版） ----------------
+   v11：不再使用 taichi_koi.png（那张是霓虹青绿 + 橙红的游戏图标，和整幅水墨画不同材质，
+   是「廉价拼接感」的主要来源之一）。改为纯墨白 + 一根描金细环，任何尺寸都锐利。 */
 function drawTaiChi(x, y, r, rot) {
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(rot);
   ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2);
-  ctx.fillStyle = '#fffdf2'; ctx.fill();
-  ctx.lineWidth = Math.max(1, r * 0.09);
-  ctx.strokeStyle = '#22301f'; ctx.stroke();
+  ctx.fillStyle = '#e9dec2'; ctx.fill();
 
   ctx.beginPath(); ctx.arc(0, 0, r, Math.PI / 2, Math.PI * 1.5);
-  ctx.fillStyle = '#22301f'; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, -r / 2, r / 2, 0, Math.PI * 2); ctx.fillStyle = '#22301f'; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, r / 2, r / 2, 0, Math.PI * 2); ctx.fillStyle = '#fffdf2'; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, -r / 2, r / 6, 0, Math.PI * 2); ctx.fillStyle = '#fffdf2'; ctx.fill();
-  ctx.beginPath(); ctx.arc(0, r / 2, r / 6, 0, Math.PI * 2); ctx.fillStyle = '#22301f'; ctx.fill();
+  ctx.fillStyle = '#1b241c'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -r / 2, r / 2, 0, Math.PI * 2); ctx.fillStyle = '#1b241c'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, r / 2, r / 2, 0, Math.PI * 2); ctx.fillStyle = '#e9dec2'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, -r / 2, r / 7, 0, Math.PI * 2); ctx.fillStyle = '#e9dec2'; ctx.fill();
+  ctx.beginPath(); ctx.arc(0, r / 2, r / 7, 0, Math.PI * 2); ctx.fillStyle = '#1b241c'; ctx.fill();
+
+  ctx.beginPath(); ctx.arc(0, 0, Math.max(1, r - r * 0.035), 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201, 168, 106, 0.9)';
+  ctx.lineWidth = Math.max(1, r * 0.07);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -87,6 +92,11 @@ function drawScrollTrack(now) {
   ctx.fillRect(sc.left, sc.top, sc.w, sc.h);
   ctx.restore();
 
+  // v11：宣纸内衬软边。track_scroll.png 里「画心」是一块偏灰的淡墨面板，
+  // 与四周米色纸边之间有一道硬直的拼缝（放大看就是一块灰方框）。
+  // 这里沿纸边内侧压一圈米色羽化，把拼缝化开，读作古纸的自然包浆。
+  drawPaperBlend(sc);
+
   // 墨河导航虚线（很淡，帮助玩家看清落点轨迹）
   ctx.save();
   ctx.lineCap = 'round';
@@ -121,25 +131,115 @@ function drawScrollTrack(now) {
   ctx.restore();
 }
 
-/* ---------------- 判定盘 ---------------- */
-function drawJudgeArea(now) {
+/* ---------------- 水墨漩涡贴图（v11 离线去色 + 圆形羽化） ----------------
+   ink_water.png 原图是「青绿 + 金屑」的彩色漩涡、且是不透明白底方图，
+   直接 multiply 会在卷轴上盖出一块带硬边的青灰色方块（这正是旧版「拼接感」的元凶之一）。
+   这里在加载后一次性处理：saturation 混合去色 → 变成墨，再 destination-in 径向羽化
+   → 只剩一团圆形墨气，边缘无缝融进宣纸。 */
+const InkSprite = { made: false, canvas: null };
+function inkVortexSprite() {
+  if (InkSprite.made) return InkSprite.canvas;
+  InkSprite.made = true;
+  const img = IMG.inkWater;
+  if (!img) return (InkSprite.canvas = null);
+  const S = 512;
+  const c = makeCanvas(S, S);
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, S, S);
+  // 去色：保留明度、抽掉饱和度 → 青绿变墨灰
+  g.globalCompositeOperation = 'saturation';
+  g.fillStyle = 'hsl(0, 0%, 50%)';
+  g.fillRect(0, 0, S, S);
+  // 圆形羽化，去掉方角
+  g.globalCompositeOperation = 'destination-in';
+  const rg = g.createRadialGradient(S / 2, S / 2, S * 0.16, S / 2, S / 2, S * 0.5);
+  rg.addColorStop(0, 'rgba(0,0,0,1)');
+  rg.addColorStop(0.66, 'rgba(0,0,0,0.92)');
+  rg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = rg;
+  g.fillRect(0, 0, S, S);
+  InkSprite.canvas = c;
+  return c;
+}
+
+/* ---------------- 宣纸内衬软边 ---------------- */
+function drawPaperBlend(sc) {
+  const pad = sc.w * 0.3;            // 纸边到画心的过渡宽度（画心约占 16%~84%，压到 30% 才盖住拼缝）
+  const padY = sc.h * 0.09;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(sc.left, sc.top, sc.w, sc.h); ctx.clip();
+  const cream = 'rgba(230, 214, 178, ';
+  // 整体压一层极淡米色：纸边与画心的灰调差被拉平，拼缝自然消失，墨河也更像"落在纸上"
+  ctx.fillStyle = cream + '0.18)';
+  ctx.fillRect(sc.left, sc.top, sc.w, sc.h);
+  // 左 / 右
+  let g = ctx.createLinearGradient(sc.left, 0, sc.left + pad, 0);
+  g.addColorStop(0, cream + '0.6)'); g.addColorStop(0.55, cream + '0.24)'); g.addColorStop(1, cream + '0)');
+  ctx.fillStyle = g; ctx.fillRect(sc.left, sc.top, pad, sc.h);
+  g = ctx.createLinearGradient(sc.left + sc.w, 0, sc.left + sc.w - pad, 0);
+  g.addColorStop(0, cream + '0.6)'); g.addColorStop(0.55, cream + '0.24)'); g.addColorStop(1, cream + '0)');
+  ctx.fillStyle = g; ctx.fillRect(sc.left + sc.w - pad, sc.top, pad, sc.h);
+  // 上 / 下
+  g = ctx.createLinearGradient(0, sc.top, 0, sc.top + padY);
+  g.addColorStop(0, cream + '0.5)'); g.addColorStop(0.5, cream + '0.18)'); g.addColorStop(1, cream + '0)');
+  ctx.fillStyle = g; ctx.fillRect(sc.left, sc.top, sc.w, padY);
+  g = ctx.createLinearGradient(0, sc.top + sc.h, 0, sc.top + sc.h - padY);
+  g.addColorStop(0, cream + '0.5)'); g.addColorStop(0.5, cream + '0.18)'); g.addColorStop(1, cream + '0)');
+  ctx.fillStyle = g; ctx.fillRect(sc.left, sc.top + sc.h - padY, sc.w, padY);
+
+  // 画心「绫边」描金细线：把那条拼缝做成装裱边，缺陷变工艺
+  const bx = sc.left + sc.w * 0.163;
+  const bw = sc.w * (0.838 - 0.163);
+  const by = sc.top + sc.h * 0.0997;
+  const bh = sc.h * (0.871 - 0.0997);
+  ctx.strokeStyle = 'rgba(150, 118, 64, 0.55)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx, by, bw, bh);
+  ctx.strokeStyle = 'rgba(255, 250, 234, 0.3)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(bx + 2, by + 2, bw - 4, bh - 4);
+  ctx.restore();
+}
+
+/* ---------------- 判定盘 ----------------
+   v11.1：拆成「底层 / 表层」两段，中间夹着音符绘制。
+   原因（用户实测反馈）：判定盘正好压在音符落点上，而旧版把漩涡、墨环、太极盘
+   全画在音符之上——落判那一瞬间音符被整块盖住，还叠了一层 multiply 把亮边压暗，
+   玩家根本看不清该不该按。现在底纹在音符之下，音符永远在最上层；
+   太极盘退成半透明水印 + 一根描金玉璧环，保留「坐进画里那个留白圆」的构图，
+   但不再遮挡判定点。 */
+function judgePulse(now) {
+  return G.feverLeft > 0 ? 1 + Math.sin(now * 11) * 0.06 : 1 + Math.sin(now * 2.2) * 0.02;
+}
+
+/* 底层：泉眼底光 + 水墨漩涡 + 断续墨环 + 判定线（全部画在音符之下） */
+function drawJudgeBack(now) {
   const cx = Geo.scroll.cx;
   const cy = Geo.track.judgeY;
   const R = Geo.scroll.judgeR;
   const fever = G.feverLeft > 0;
-  const pulse = fever ? 1 + Math.sin(now * 11) * 0.06 : 1 + Math.sin(now * 2.2) * 0.02;
+  const pulse = judgePulse(now);
 
+  // 泉眼底光：给落点先铺一层暖光，音符压上来才有对比（不然白纸+墨河，浅色音符糊成一片）
   ctx.save();
+  const lg = ctx.createRadialGradient(cx, cy, R * 0.15, cx, cy, R * 1.92);
+  lg.addColorStop(0, fever ? 'rgba(255,246,214,0.30)' : 'rgba(250,243,222,0.26)');
+  lg.addColorStop(0.5, fever ? 'rgba(255,240,196,0.12)' : 'rgba(246,237,210,0.10)');
+  lg.addColorStop(1, 'rgba(246,237,210,0)');
+  ctx.fillStyle = lg;
+  ctx.beginPath(); ctx.arc(cx, cy, R * 1.92, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 
   // 水墨漩涡（旋转，和太极盘同向）
-  if (IMG.inkWater) {
+  const vortex = inkVortexSprite();
+  if (vortex) {
     ctx.save();
     ctx.translate(cx, cy);
     ctx.rotate(now * 0.35);
     ctx.globalCompositeOperation = 'multiply';
-    ctx.globalAlpha = fever ? 0.42 : 0.24;
-    const rw = R * 2.3 * pulse;
-    ctx.drawImage(IMG.inkWater, -rw / 2, -rw / 2, rw, rw);
+    ctx.globalAlpha = fever ? 0.5 : 0.34;
+    const rw = R * 2.24 * pulse;
+    ctx.drawImage(vortex, -rw / 2, -rw / 2, rw, rw);
     ctx.restore();
   }
 
@@ -162,72 +262,67 @@ function drawJudgeArea(now) {
   }
   ctx.restore();
 
-  // 判定线（v7）：去掉横贯全盘的直尺金线，改成盘两侧两笔淡金墨痕（笔触两端收细、中间略粗，像毛笔一抹）；
-  // 直线 + 绿底是用户点名的“绿色横线”，墨痕与盘同色系，不再有横线感
-  const halfW = R * 1.32;
-  const brushStroke = (x1, x2) => {
-    const h = 4.6; // 笔触最粗处半高
-    ctx.save();
+  // 判定线（v11）：一条贯穿全卷的极细金线，两端收成笔锋。
+  const halfW = R * 1.9;
+  const brushLine = (x1, x2, w) => {
     ctx.beginPath();
     ctx.moveTo(x1, cy);
-    ctx.quadraticCurveTo((x1 + x2) / 2, cy - h, x2, cy);
-    ctx.quadraticCurveTo((x1 + x2) / 2, cy + h, x1, cy);
+    ctx.quadraticCurveTo((x1 * 2 + x2) / 3, cy - w, (x1 + x2) / 2, cy);
+    ctx.quadraticCurveTo((x1 * 2 + x2) / 3, cy + w, x1, cy);
     ctx.closePath();
-    ctx.fillStyle = fever ? 'rgba(255,225,150,0.92)' : 'rgba(198,150,74,0.85)';
-    ctx.fill();
-    // 笔锋高光
-    ctx.beginPath();
-    ctx.moveTo(x1 + 6, cy - 0.8);
-    ctx.quadraticCurveTo((x1 + x2) / 2, cy - h * 0.55, x2 - 6, cy - 0.8);
-    ctx.quadraticCurveTo((x1 + x2) / 2, cy + h * 0.2, x1 + 6, cy - 0.8);
+    ctx.moveTo(x2, cy);
+    ctx.quadraticCurveTo((x2 * 2 + x1) / 3, cy - w, (x1 + x2) / 2, cy);
+    ctx.quadraticCurveTo((x2 * 2 + x1) / 3, cy + w, x2, cy);
     ctx.closePath();
-    ctx.fillStyle = fever ? 'rgba(255,246,214,0.9)' : 'rgba(255,228,160,0.55)';
     ctx.fill();
-    ctx.restore();
   };
   ctx.save();
-  brushStroke(cx - halfW - 40, cx - halfW * 0.66);
-  brushStroke(cx + halfW * 0.66, cx + halfW + 40);
-  // 两端云纹金点（保留）
-  ctx.fillStyle = fever ? '#ffe9a8' : '#b8861d';
-  [cx - halfW - 40, cx + halfW + 40].forEach(x => {
-    ctx.beginPath(); ctx.arc(x, cy, 3.2, 0, Math.PI * 2); ctx.fill();
-  });
+  ctx.fillStyle = fever ? 'rgba(240,226,186,0.62)' : 'rgba(160,132,78,0.5)';
+  brushLine(cx - halfW, cx + halfW, 1.5);
+  ctx.fillStyle = fever ? 'rgba(255,246,214,0.6)' : 'rgba(230,206,158,0.4)';
+  ctx.fillRect(cx - halfW * 0.62, cy - 0.4, halfW * 1.24, 0.8);
+  ctx.restore();
+}
+
+/* 中层：太极盘 + 描金玉璧环。
+   这一段画在音符**之下**——盘保持不透明（墨白要够脆，半透明会发灰发浑），
+   但音符画在它上面，所以判定瞬间音符永远完整可见。
+   同时它画在漩涡**之上**，墨白盘面替音符挡住了背后那团深墨，对比反而更清楚。 */
+function drawJudgePad(now) {
+  const cx = Geo.scroll.cx;
+  const cy = Geo.track.judgeY;
+  const R = Geo.scroll.judgeR;
+  const fever = G.feverLeft > 0;
+  const pulse = judgePulse(now);
+  // 0.86R：仍坐进画里那个半径约 1.17R 的留白圆，但比旧版 0.92R 收一圈
+  const tr = R * 0.86 * pulse;
+
+  ctx.save();
+  ctx.shadowColor = fever ? 'rgba(220,193,137,0.7)' : 'rgba(110,92,58,0.4)';
+  ctx.shadowBlur = fever ? 14 : 7;
+  drawTaiChi(cx, cy, tr, now * 0.9);
   ctx.restore();
 
-  // 中央太极盘
-  const tr = R * 0.66 * pulse;
-  const koi = IMG.taichiKoi;
+  // 描金玉璧环：只描边不填色，把落点圈清楚
   ctx.save();
-  // 玉璧金环
   ctx.beginPath();
-  ctx.arc(cx, cy, tr + 5, 0, Math.PI * 2);
-  ctx.strokeStyle = fever ? 'rgba(255,236,180,0.95)' : 'rgba(214,172,96,0.8)';
-  ctx.lineWidth = 2.4;
+  ctx.arc(cx, cy, tr + 4, 0, Math.PI * 2);
+  ctx.strokeStyle = fever ? 'rgba(245,228,186,0.95)' : 'rgba(201,168,106,0.85)';
+  ctx.lineWidth = 1.7;
   ctx.stroke();
   ctx.beginPath();
-  ctx.arc(cx, cy, tr + 10, 0, Math.PI * 2);
-  ctx.strokeStyle = fever ? 'rgba(255,215,110,0.45)' : 'rgba(214,172,96,0.32)';
+  ctx.arc(cx, cy, tr + 9, 0, Math.PI * 2);
+  ctx.strokeStyle = fever ? 'rgba(220,193,137,0.4)' : 'rgba(201,168,106,0.24)';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
+}
 
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(now * 0.9);
-  ctx.shadowColor = fever ? 'rgba(255,215,110,0.95)' : 'rgba(255,214,110,0.8)';
-  ctx.shadowBlur = fever ? 20 : 12;
-  if (koi) {
-    ctx.save();
-    ctx.beginPath(); ctx.arc(0, 0, tr, 0, Math.PI * 2); ctx.clip();
-    ctx.drawImage(koi, -tr, -tr, tr * 2, tr * 2);
-    ctx.restore();
-  } else {
-    drawTaiChi(0, 0, tr, 0);
-  }
-  ctx.restore();
-
-  // 判定高光（命中瞬间）
+/* 表层：只放命中高光（必须在音符之上，才有「打到了」的反馈） */
+function drawJudgeFront(now) {
+  const cx = Geo.scroll.cx;
+  const cy = Geo.track.judgeY;
+  const R = Geo.scroll.judgeR;
   if (G.hitFlash > 0) {
     ctx.save();
     ctx.globalCompositeOperation = 'lighter';
@@ -240,8 +335,6 @@ function drawJudgeArea(now) {
     ctx.beginPath(); ctx.arc(cx, cy, R * 2.2, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
-
-  ctx.restore();
 }
 
 /* ---------------- 音符 ---------------- */
@@ -270,29 +363,36 @@ function traceSlideBlade(cx, y, sign, k) {
 function drawNotes() {
   if (!G.song) return;
   const judgeY = Geo.track.judgeY;
+  const sc = Geo.scroll;
+
+  // v11：音符一律剪在卷轴纸面内——旧版音符会飘到卷轴上方、悬在背景画上，
+  // 这是很典型的一张图"贴"在另一张图上的破功点。
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(sc.left + 4, sc.top + 8, sc.w - 8, sc.h - 16);
+  ctx.clip();
 
   for (const n of G.chart) {
     if (n.judged) continue;
     const y = noteY(n.time);
-    if (y < Geo.scroll.top - 20) continue;
+    if (y < Geo.scroll.top - 4) continue;
     if (n.type !== 'hold' && y > judgeY + 60) continue;
 
     const cx = trackCX(Math.min(y, judgeY));
     let near = 1 - Math.min(1, Math.abs(n.time - G.songTime) / 0.5);
     if (G.tutFrozen && G.tutorial && G.tutorial.target === n) near = 1; // 冻结的目标音符已滑到判定线，按“已到”渲染
-    const fadeIn = clamp((y - (Geo.scroll.top - 20)) / 70, 0, 1);
+    const fadeIn = clamp((y - (Geo.scroll.top - 4)) / 54, 0, 1);
 
     ctx.save();
     ctx.globalAlpha = fadeIn;
 
-    // 阴阳轮转相位环（v6）：金环=阳、蓝环=阴，与 HUD 太极盘相位一致时踩准得加成
-    // v8：贴合音符形状——闪身叶片用叶片形描边（圆环套扁叶片会多出一圈空白，像按钮没做对）；
-    // 远处淡入、靠近才亮满，不在卷轴顶端留一圈孤零零的圆
+    // 阴阳轮转相位环（v6）：金环=阳、青环=阴，与 HUD 太极盘相位一致时踩准得加成
+    // v11：阴环由亮蓝改青瓷灰蓝，退出霓虹色系
     if (typeof n.phase === 'number') {
       const phaseA = 0.9 * (0.25 + 0.75 * near);
       ctx.save();
-      ctx.strokeStyle = n.phase === 1 ? `rgba(255,215,110,${phaseA})` : `rgba(127,179,213,${phaseA})`;
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = n.phase === 1 ? `rgba(220,193,137,${phaseA})` : `rgba(112,140,163,${phaseA})`;
+      ctx.lineWidth = 1.8;
       if (n.type === 'slide') {
         const sign = n.dir < 0 ? -1 : 1;
         traceSlideBlade(cx, y, sign, 1.16);
@@ -306,50 +406,50 @@ function drawNotes() {
     if (n.type === 'tap') {
       // 上浮墨烟
       const tg = ctx.createLinearGradient(0, y - 76, 0, y);
-      tg.addColorStop(0, 'rgba(184,59,38,0)');
-      tg.addColorStop(1, `rgba(184,59,38,${0.18 + near * 0.24})`);
+      tg.addColorStop(0, 'rgba(140,44,26,0)');
+      tg.addColorStop(1, `rgba(140,44,26,${0.12 + near * 0.2})`);
       ctx.fillStyle = tg;
       ctx.fillRect(cx - 11, y - 76, 22, 76);
 
-      // 朱砂印圆牌
+      if (IMG.noteTap) {
+        // v12：美术音符到位后直接用图（44 = 圆牌直径），程序化只作为回退
+        const s = 44 * (1 + near * 0.06);
+        ctx.save();
+        ctx.globalAlpha = fadeIn;
+        ctx.shadowColor = 'rgba(110,36,20,0.45)';
+        ctx.shadowBlur = 4 + near * 10;
+        ctx.drawImage(IMG.noteTap, cx - s / 2, y - s / 2, s, s);
+        ctx.restore();
+      } else {
+      // 朱砂印圆牌（v11：压暗、去发光、描金细边）
       ctx.save();
-      ctx.shadowColor = 'rgba(220,70,45,0.9)';
-      ctx.shadowBlur = 10 + near * 18;
+      ctx.shadowColor = 'rgba(110,36,20,0.5)';
+      ctx.shadowBlur = 5 + near * 12;
       const grad = ctx.createRadialGradient(cx - 6, y - 7, 2, cx, y, 21);
-      grad.addColorStop(0, '#c9462e');
-      grad.addColorStop(0.6, '#a02a18');
-      grad.addColorStop(1, '#6d1a0e');
+      grad.addColorStop(0, '#b8462e');
+      grad.addColorStop(0.62, '#8f2a17');
+      grad.addColorStop(1, '#63200f');
       ctx.fillStyle = grad;
       ctx.beginPath(); ctx.arc(cx, y, 20, 0, Math.PI * 2); ctx.fill();
 
-      ctx.strokeStyle = '#ffd76e';
-      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = 'rgba(236,214,170,0.85)';
+      ctx.lineWidth = 1.6;
       ctx.stroke();
-      ctx.strokeStyle = 'rgba(255,236,180,0.55)';
+      ctx.strokeStyle = 'rgba(236,214,170,0.3)';
       ctx.lineWidth = 1;
       ctx.beginPath(); ctx.arc(cx, y, 15.5, 0, Math.PI * 2); ctx.stroke();
       ctx.restore();
 
-      // 中心太极 / 推字
-      if (IMG.taichiKoi) {
-        ctx.save();
-        ctx.beginPath(); ctx.arc(cx, y, 11, 0, Math.PI * 2); ctx.clip();
-        ctx.drawImage(IMG.taichiKoi, cx - 11, y - 11, 22, 22);
-        ctx.restore();
-      } else {
-        ctx.font = '700 13px "Ma Shan Zheng","STKaiti","KaiTi",serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#fff8e6';
-        ctx.fillText('推', cx, y);
+      // 中心迷你太极（墨白描金，与判定盘同一套语言）
+      drawTaiChi(cx, y, 10.5, performance.now() / 1400);
       }
 
       // 接近判定时的收束光圈
       if (near > 0.05) {
         ctx.save();
-        ctx.globalAlpha = fadeIn * near * 0.9;
-        ctx.strokeStyle = 'rgba(255,226,150,0.9)';
-        ctx.lineWidth = 1.8;
+        ctx.globalAlpha = fadeIn * near * 0.8;
+        ctx.strokeStyle = 'rgba(236,214,170,0.75)';
+        ctx.lineWidth = 1.4;
         ctx.beginPath();
         ctx.arc(cx, y, 20 + (1 - near) * 34, 0, Math.PI * 2);
         ctx.stroke();
@@ -359,10 +459,22 @@ function drawNotes() {
       const sign = n.dir < 0 ? -1 : 1;
       const bladeLen = 52;
       const bladeH = 21;
+      if (IMG.noteSlide) {
+        // v12：美术叶片（朝右）；左向由代码镜像
+        const sw = 116, sh = sw * (IMG.noteSlide.height / IMG.noteSlide.width);
+        ctx.save();
+        ctx.globalAlpha = fadeIn;
+        ctx.translate(cx, y);
+        ctx.scale(sign, 1);
+        ctx.shadowColor = 'rgba(250,246,232,0.85)';
+        ctx.shadowBlur = 7;
+        ctx.drawImage(IMG.noteSlide, -sw / 2, -sh / 2, sw, sh);
+        ctx.restore();
+      } else {
       ctx.save();
       ctx.translate(cx, y);
-      ctx.shadowColor = `rgba(104,231,184,${0.65 + near * 0.35})`;
-      ctx.shadowBlur = 10 + near * 16;
+      ctx.shadowColor = `rgba(40,70,56,${0.4 + near * 0.35})`;
+      ctx.shadowBlur = 5 + near * 12;
 
       ctx.beginPath();
       ctx.moveTo(sign * bladeLen, 0);
@@ -371,35 +483,52 @@ function drawNotes() {
       ctx.quadraticCurveTo(sign * 14, bladeH, sign * bladeLen, 0);
       ctx.closePath();
 
+      // v11：青瓷（去掉霓虹嫩绿），描金细边
       const bg = ctx.createLinearGradient(-sign * 26, 0, sign * bladeLen, 0);
-      bg.addColorStop(0, 'rgba(16,30,22,0.95)');
-      bg.addColorStop(0.42, 'rgba(36,88,62,0.95)');
-      bg.addColorStop(0.86, '#48b885');
-      bg.addColorStop(1, '#b6ffdc');
+      bg.addColorStop(0, 'rgba(16,28,21,0.95)');
+      bg.addColorStop(0.45, 'rgba(48,88,68,0.95)');
+      bg.addColorStop(0.86, '#5a8b74');
+      bg.addColorStop(1, '#a8c9b8');
+      // 先描一圈米白外光：音符要压在深墨河上，没有这圈亮边就糊进河里看不见
+      ctx.save();
+      ctx.shadowColor = 'rgba(250,246,232,0.9)';
+      ctx.shadowBlur = 9;
+      ctx.strokeStyle = 'rgba(250,246,232,0.95)';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+      ctx.restore();
       ctx.fillStyle = bg;
       ctx.fill();
-      ctx.strokeStyle = '#ffd76e';
-      ctx.lineWidth = 1.7;
+      ctx.strokeStyle = 'rgba(201,168,106,0.8)';
+      ctx.lineWidth = 1.3;
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(255,255,255,0.95)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = 'rgba(250,246,232,0.7)';
+      ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(-sign * 14, 0);
-      ctx.lineTo(sign * (bladeLen - 6), 0);
+      ctx.lineTo(sign * (bladeLen - 14), 0);
       ctx.stroke();
 
-      ctx.font = '700 13px "Ma Shan Zheng","STKaiti","KaiTi",serif';
+      // 「闪」+ 箭头（v11：弦月号换成手画三角箭头，方向一眼可读）
+      ctx.font = '700 12px "Ma Shan Zheng","STKaiti","KaiTi",serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(0,0,0,0.9)';
-      ctx.shadowBlur = 4;
-      ctx.fillText('闪', -sign * 2, 0);
-      ctx.font = '700 12px \"Ma Shan Zheng\",\"STKaiti\",\"KaiTi\",serif';
-      ctx.fillStyle = '#ffd76e';
-      ctx.fillText(n.dir < 0 ? '《' : '》', sign * 22, 0);
+      ctx.fillStyle = '#f8f2e2';
+      ctx.shadowColor = 'rgba(0,0,0,0.75)';
+      ctx.shadowBlur = 3;
+      ctx.fillText('闪', -sign * 8, 0);
+      ctx.shadowBlur = 0;
+      ctx.strokeStyle = 'rgba(248,242,226,0.95)';
+      ctx.lineWidth = 2;
+      ctx.lineJoin = 'round';
+      ctx.beginPath();
+      ctx.moveTo(sign * (bladeLen - 16), -6.5);
+      ctx.lineTo(sign * (bladeLen - 5), 0);
+      ctx.lineTo(sign * (bladeLen - 16), 6.5);
+      ctx.stroke();
       ctx.restore();
+      }
     } else if (n.type === 'hold') {
       const tailY = noteY(n.time + n.dur);
       if (tailY > judgeY + 80) continue;
@@ -421,67 +550,74 @@ function drawNotes() {
 
       ctx.lineCap = 'round';
       path();
-      ctx.strokeStyle = n.holding ? 'rgba(96,206,140,0.92)' : 'rgba(46,132,76,0.82)';
-      ctx.lineWidth = 24;
+      ctx.strokeStyle = n.holding ? 'rgba(63,102,80,0.95)' : 'rgba(38,64,50,0.85)';
+      ctx.lineWidth = 22;
       ctx.stroke();
 
+      // 金芯（v11：原来是嫩绿霓虹芯，现在一根描金线，像卷轴上的一笔）
       path();
-      ctx.strokeStyle = n.holding ? '#d8ffe6' : '#9ceeb4';
-      ctx.lineWidth = 7;
+      ctx.strokeStyle = n.holding ? 'rgba(240,226,186,0.95)' : 'rgba(201,178,130,0.75)';
+      ctx.lineWidth = 5;
       ctx.stroke();
 
       ctx.save();
-      ctx.shadowColor = n.holding ? 'rgba(120,255,180,0.95)' : 'rgba(104,231,184,0.8)';
-      ctx.shadowBlur = (n.holding ? 20 : 10) + near * 12;
+      ctx.shadowColor = n.holding ? 'rgba(200,180,130,0.7)' : 'rgba(40,64,50,0.5)';
+      ctx.shadowBlur = (n.holding ? 14 : 7) + near * 8;
       ctx.globalAlpha = headY > Geo.scroll.top - 4 ? 1 : 0;
-      ctx.beginPath(); ctx.arc(headCx, headY, 19, 0, Math.PI * 2);
-      ctx.fillStyle = n.holding ? '#33b26c' : '#225d36';
+      if (IMG.noteHoldHead) {
+        const s = 44;
+        ctx.drawImage(IMG.noteHoldHead, headCx - s / 2, headY - s / 2, s, s);
+      } else {
+      ctx.beginPath(); ctx.arc(headCx, headY, 18, 0, Math.PI * 2);
+      ctx.fillStyle = n.holding ? '#2f5340' : '#1e3327';
       ctx.fill();
-      ctx.strokeStyle = '#ffd76e';
-      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = 'rgba(220,193,137,0.85)';
+      ctx.lineWidth = 1.6;
       ctx.stroke();
       ctx.font = '700 13px "Ma Shan Zheng","STKaiti","KaiTi",serif';
-      ctx.fillStyle = '#fffdf0';
+      ctx.fillStyle = '#f6ecd4';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('纳', headCx, headY);
+      }
       ctx.restore();
 
       if (n.holding) {
         ctx.beginPath();
-        ctx.arc(headCx, headY, 26 + Math.sin(performance.now() / 90) * 4, 0, Math.PI * 2);
-        ctx.strokeStyle = 'rgba(150,250,190,0.9)';
-        ctx.lineWidth = 3;
+        ctx.arc(headCx, headY, 25 + Math.sin(performance.now() / 90) * 4, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(220,193,137,0.8)';
+        ctx.lineWidth = 2.4;
         ctx.stroke();
       }
     }
     ctx.restore();
   }
+  ctx.restore();   // 解除卷轴纸面裁剪
 }
 
-/* ---------------- 名牌 ---------------- */
+/* ---------------- 名牌（v11：一方纸签 + 一道朱砂，不再做描金木牌） ---------------- */
 function drawNamePlate(x, y, name) {
   ctx.save();
-  ctx.font = '700 12px "Ma Shan Zheng","STKaiti","KaiTi",serif';
+  ctx.font = '600 11px "Noto Serif SC","Songti SC","SimSun",serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const w = ctx.measureText(name).width + 26;
-  const h = 21;
+  const w = ctx.measureText(name).width + 22;
+  const h = 19;
 
-  ctx.fillStyle = 'rgba(248,242,223,0.94)';
+  ctx.fillStyle = 'rgba(250,246,235,0.92)';
   ctx.beginPath();
-  if (ctx.roundRect) ctx.roundRect(x - w / 2, y, w, h, 4); else ctx.rect(x - w / 2, y, w, h);
+  if (ctx.roundRect) ctx.roundRect(x - w / 2, y, w, h, 2); else ctx.rect(x - w / 2, y, w, h);
   ctx.fill();
-  ctx.strokeStyle = '#a88948';
-  ctx.lineWidth = 1.4;
+  ctx.strokeStyle = 'rgba(125,97,50,0.45)';
+  ctx.lineWidth = 1;
   ctx.stroke();
 
-  ctx.fillStyle = '#6b4f24';
-  ctx.fillRect(x - w / 2 - 3.5, y - 2, 4.5, h + 4);
-  ctx.fillRect(x + w / 2 - 1, y - 2, 4.5, h + 4);
+  // 左侧朱砂短竖：一处点睛，替代原来两端各一块的金色木榫
+  ctx.fillStyle = 'rgba(168,52,31,0.85)';
+  ctx.fillRect(x - w / 2 + 5, y + 4.5, 2, h - 9);
 
-  ctx.fillStyle = '#2b3627';
-  ctx.fillText(name, x, y + h / 2 + 0.5);
+  ctx.fillStyle = '#33362b';
+  ctx.fillText(name, x + 3, y + h / 2 + 0.5);
   ctx.restore();
 }
 
@@ -499,24 +635,22 @@ function drawHero(now) {
   else if (act === 'stagger') { lean = Math.sin(now * 26) * 0.07; cy += 3; }
   else cy += Math.sin(now * 2.1) * 2.5;
 
-  // 地面描金圆盘
+  // 纸晕：人物背后一层极淡墨气，把亮背景压下去一档，人物才不会"贴"在画上
   ctx.save();
-  ctx.globalAlpha = 0.55;
-  ctx.strokeStyle = 'rgba(255,215,110,0.6)';
-  ctx.lineWidth = 2;
+  const hg = ctx.createRadialGradient(baseX, baseY - 100 * k, 8, baseX, baseY - 100 * k, 165 * k);
+  hg.addColorStop(0, 'rgba(26,38,28,0.14)');
+  hg.addColorStop(0.62, 'rgba(26,38,28,0.07)');
+  hg.addColorStop(1, 'rgba(26,38,28,0)');
+  ctx.fillStyle = hg;
   ctx.beginPath();
-  ctx.ellipse(baseX, baseY + 8, 66 * k, 15 * k, 0, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.fillStyle = 'rgba(20,32,22,0.26)';
-  ctx.beginPath();
-  ctx.ellipse(baseX, baseY + 8, 60 * k, 13 * k, 0, 0, Math.PI * 2);
+  ctx.ellipse(baseX, baseY - 100 * k, 165 * k, 190 * k, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 
   // 柔和接触阴影（脚下压一层模糊暗晕，人物站进地面而不是贴在上面）
   ctx.save();
-  ctx.fillStyle = 'rgba(12,18,12,0.30)';
-  ctx.shadowColor = 'rgba(12,18,12,0.55)';
+  ctx.fillStyle = 'rgba(12,18,12,0.26)';
+  ctx.shadowColor = 'rgba(12,18,12,0.5)';
   ctx.shadowBlur = 10;
   ctx.beginPath();
   ctx.ellipse(baseX, baseY + 9, 48 * k, 9 * k, 0, 0, Math.PI * 2);
@@ -527,12 +661,12 @@ function drawHero(now) {
   ctx.save();
   ctx.translate(cx, cy - 40 * k);
   ctx.rotate(now * 1.6);
-  ctx.strokeStyle = `rgba(104,231,184,${0.35 + G.comboGlow * 0.4})`;
-  ctx.lineWidth = 2.4;
+  ctx.strokeStyle = `rgba(143,179,160,${0.24 + G.comboGlow * 0.28})`;
+  ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.arc(0, 0, 54 * k, 0, Math.PI * 1.35);
   ctx.stroke();
-  ctx.strokeStyle = `rgba(255,215,110,${G.feverLeft > 0 ? 0.8 : 0.32 + G.comboGlow * 0.3})`;
+  ctx.strokeStyle = `rgba(220,193,137,${G.feverLeft > 0 ? 0.75 : 0.26 + G.comboGlow * 0.26})`;
   ctx.beginPath();
   ctx.arc(0, 0, 46 * k, Math.PI, Math.PI * 2.3);
   ctx.stroke();
@@ -555,7 +689,7 @@ function drawHero(now) {
     if (aura > 0) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = 'rgba(104,231,184,0.55)';
+      ctx.strokeStyle = 'rgba(143,179,160,0.45)';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.arc(0, -dh * 0.42, aura + 46 * k, 0, Math.PI * 2);
@@ -599,19 +733,22 @@ function drawEnemies(now) {
     const x = a.x;
     const y = a.y + Math.sin(now * 2 + i * 2) * 3;
 
-    // 脚下光环
+    // 脚下纸晕（v11：去掉描金选中环，改成一层柔和墨气）
     ctx.save();
-    ctx.strokeStyle = 'rgba(255,215,110,0.42)';
-    ctx.lineWidth = 2;
+    const eg = ctx.createRadialGradient(x, y - 40 * k, 6, x, y - 40 * k, 92 * k);
+    eg.addColorStop(0, 'rgba(30,38,28,0.15)');
+    eg.addColorStop(0.6, 'rgba(30,38,28,0.07)');
+    eg.addColorStop(1, 'rgba(30,38,28,0)');
+    ctx.fillStyle = eg;
     ctx.beginPath();
-    ctx.ellipse(x, y + 46 * k, 46 * k, 10 * k, 0, 0, Math.PI * 2);
-    ctx.stroke();
+    ctx.ellipse(x, y - 40 * k, 92 * k, 108 * k, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 
     // 柔和接触阴影（脚下压一层模糊暗晕，小怪站进地面）
     ctx.save();
-    ctx.fillStyle = 'rgba(12,18,12,0.30)';
-    ctx.shadowColor = 'rgba(12,18,12,0.50)';
+    ctx.fillStyle = 'rgba(12,18,12,0.28)';
+    ctx.shadowColor = 'rgba(12,18,12,0.46)';
     ctx.shadowBlur = 9;
     ctx.beginPath();
     ctx.ellipse(x, y + 48 * k, 34 * k, 7 * k, 0, 0, Math.PI * 2);
@@ -634,7 +771,7 @@ function drawEnemies(now) {
     // 亚健康标注
     if (g.kind === 'waist') {
       ctx.save();
-      ctx.font = '700 11px "Ma Shan Zheng","STKaiti","KaiTi",serif';
+      ctx.font = '600 10px "Noto Serif SC","Songti SC",serif';
       ctx.fillStyle = '#9e6232';
       ctx.textAlign = 'center';
       ctx.fillText('酸痛', x - 44 * k, y - 30 * k);
@@ -852,13 +989,13 @@ function drawCornerOrnaments(now) {
   const h = w * img.height / img.width;
   const H = Layout.H;
   ctx.save();
-  ctx.globalAlpha = 0.9;
+  ctx.globalAlpha = 0.42;
   ctx.translate(0, H);
   ctx.scale(1, -1);
   ctx.drawImage(img, 4, 0, w, h);
   ctx.restore();
   ctx.save();
-  ctx.globalAlpha = 0.9;
+  ctx.globalAlpha = 0.42;
   ctx.translate(Layout.W, H);
   ctx.scale(-1, -1);
   ctx.drawImage(img, 4, 0, w, h);
@@ -949,20 +1086,34 @@ function render() {
   }
 
   drawPlayBackdrop(now);
+  drawStageLayers(now);      // v12：分层远景/中景/地面（有图才生效）
+  drawBackFog(now);          // v12：人物背后的景深雾
   drawGroundMist(now);
   drawXihuDecor(now);
   drawScrollTrack(now);
 
-
+  // 判定盘分三层：底纹（漩涡/墨环/判定线）→ 太极盘 → 音符 → 命中高光
+  // v11.1：初版把整块判定盘画在音符之上，判定瞬间音符被盖住、还叠了 multiply 压暗，
+  // 玩家根本看不清该不该按。现在音符永远压在盘面之上。
+  drawJudgeBack(now);
+  drawJudgePad(now);
   if (G.state === 'playing' || G.state === 'result') drawNotes();
-  drawJudgeArea(now);
+  drawJudgeFront(now);
   if (G.tutFrozen) drawTutGuide(now);
+
+  // v12：天人合一的「墨气登仙」演出（墨柱 + 地面墨阵 + 诗句），画在角色之后
+  drawFeverAscent(now);
+
   // 打斗期间把本体压暗一档：墨灵读作前景庆祝特效，不与实体角色抢视线（不改布局与判定）
   const duelDim = Duel.active();
   if (duelDim) { ctx.save(); ctx.globalAlpha = 0.35; }
   drawHero(now);
   drawEnemies(now);
   if (duelDim) { ctx.restore(); }
+
+  drawFrontFog(now);         // v12：人物脚前的薄雾——把立绘"埋"回画面
+  drawStageFore(now);        // v12：前景剪影（有图用图，没图用程序化竹叶）
+
   drawProjectiles();
   drawWindBlades();
   drawVortex();
@@ -989,6 +1140,10 @@ function render() {
     ctx.drawImage(Cache.flash, 0, 0, Layout.W, Layout.H);
     ctx.restore();
   }
+
+  // v12：最后一层纸材质统一调色——纸纹 + 暖冷分离 + 暗角 + 上下积墨。
+  // 这一层把背景、角色、特效压进同一张宣纸，是"去塑料"最关键的一步。
+  drawGrade(now);
 
   ctx.restore();
 }

@@ -885,6 +885,39 @@ const Duel = {
 /* ============================================================
    卷轴墨瀑 + 底部墨池（常态淡淡一层，天人合一全开；不遮音符）
    ============================================================ */
+/* v11.1：fx_inkfall 的中间竖条直接 multiply 上去是一根硬边黑柱（截图里就是两条贴上去的黑条）。
+   这里先切出中间一条，再横竖双向羽化，做成一条真正「化进纸里」的墨瀑。 */
+const InkFall = { made: false, canvas: null };
+function inkFallStrip() {
+  if (InkFall.made) return InkFall.canvas;
+  InkFall.made = true;
+  const img = IMG.fxInkfall;
+  if (!img) return (InkFall.canvas = null);
+  const W = 96, H = 768;
+  const c = makeCanvas(W, H);
+  const g = c.getContext('2d');
+  const sw = img.width * 0.3, sx0 = (img.width - sw) / 2;
+  g.drawImage(img, sx0, 0, sw, img.height, 0, 0, W, H);
+  // 横向羽化：两侧化开
+  g.globalCompositeOperation = 'destination-in';
+  let lg = g.createLinearGradient(0, 0, W, 0);
+  lg.addColorStop(0, 'rgba(0,0,0,0)');
+  lg.addColorStop(0.32, 'rgba(0,0,0,0.85)');
+  lg.addColorStop(0.5, 'rgba(0,0,0,1)');
+  lg.addColorStop(0.68, 'rgba(0,0,0,0.85)');
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, W, H);
+  // 纵向羽化：上下淡出
+  lg = g.createLinearGradient(0, 0, 0, H);
+  lg.addColorStop(0, 'rgba(0,0,0,0)');
+  lg.addColorStop(0.14, 'rgba(0,0,0,1)');
+  lg.addColorStop(0.86, 'rgba(0,0,0,1)');
+  lg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = lg; g.fillRect(0, 0, W, H);
+  InkFall.canvas = c;
+  return c;
+}
+
 const ScrollInk = {
   draw(now) {
     if (G.state !== 'playing' || !G.song) return;
@@ -897,14 +930,14 @@ const ScrollInk = {
     // 两侧墨瀑（v7）：常态只画程序化细墨流——v6 的 24px 美术竖带在常态下糊成一整块半透明竖条；
     // 美术墨瀑只在天人合一全开时贴边流，那时它才是瀑布而不是条子
     if (fever && IMG.fxInkfall) {
-      const img = IMG.fxInkfall;
-      const sw = img.width * 0.22, sx0 = (img.width - sw) / 2;
-      for (const dx of [sc.left - 14, sc.left + sc.w - 10]) {
+      const strip = inkFallStrip();
+      for (const dx of [sc.left - 16, sc.left + sc.w - 12]) {
+        if (!strip) break;
         ctx.save();
         // 正片叠底：瀑布的白色水花透过去不留白柱，只有墨色 streak 落在底色上
         ctx.globalCompositeOperation = 'multiply';
-        ctx.globalAlpha = a * 0.85;
-        ctx.drawImage(img, sx0, 0, sw, img.height, dx, 92, 24, 492);
+        ctx.globalAlpha = a * 0.7;
+        ctx.drawImage(strip, dx, 92, 30, 492);
         ctx.restore();
       }
       for (const sx of [sc.left - 2, sc.left + sc.w + 2]) {
@@ -1095,30 +1128,34 @@ function drawRings() {
 }
 
 function drawSlashes() {
-  ctx.save();
   for (const s of G.slashes) {
-    const k = clamp(s.life / s.maxLife, 0, 1);
-    ctx.save();
-    ctx.translate(s.x, s.y);
-    ctx.rotate(s.a0);
-    ctx.globalAlpha = k * 0.92;
-    if (IMG.slashInk) {
-      const sw = s.sw * (1.25 - k * 0.25);
-      const sh = sw * (IMG.slashInk.height / IMG.slashInk.width);
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.drawImage(IMG.slashInk, -sw / 2, -sh / 2, sw, sh);
-    } else {
-      ctx.globalCompositeOperation = 'lighter';
-      ctx.strokeStyle = s.big ? '#ffe9a8' : '#9dffd8';
-      ctx.lineWidth = s.big ? 3.6 : 2;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.arc(0, 0, s.sw * 0.42, -1.1, 1.1);
-      ctx.stroke();
+    const k = clamp(s.life / s.maxLife, 0, 1);       // 1 → 0
+    const e = easeOut(1 - k);                         // 0 → 1 展开
+    const fade = Math.pow(k, 0.7);
+    const len = s.sw * (0.55 + e * 0.62);
+    const thick = s.sw * (s.big ? 0.17 : 0.12) * (0.9 + (1 - k) * 0.35);
+    // v12：美术剑气图存在时仍用图（作为叠加材质），否则走水墨剑气原语
+    if (IMG.fxSwordQi) {
+      ctx.save();
+      ctx.translate(s.x, s.y);
+      ctx.rotate(s.a0);
+      ctx.globalAlpha = fade * 0.9;
+      const sw = s.sw * (1.2 - k * 0.2);
+      const sh = sw * (IMG.fxSwordQi.height / IMG.fxSwordQi.width);
+      ctx.drawImage(IMG.fxSwordQi, -sw / 2, -sh / 2, sw, sh);
+      ctx.restore();
+      continue;
     }
+    ctx.save();
+    // 墨边 + 白芯的月牙剑气，比原来的 lighter 光圈干净得多
+    swordQi(s.x, s.y, s.a0, len, s.big ? 0.72 : 0.55, thick, {
+      alpha: fade,
+      hot: s.big ? 0.92 : 0.8,
+      warm: !!s.big,
+      specks: s.big ? 7 : 4,
+    });
     ctx.restore();
   }
-  ctx.restore();
 }
 
 function drawFireworks() {

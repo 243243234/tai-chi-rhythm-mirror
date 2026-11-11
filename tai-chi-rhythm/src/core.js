@@ -238,7 +238,9 @@ function computeGeo() {
   sc.cx = cx + 4;
   sc.left = sc.cx - sc.w / 2;
   sc.judgeY = sc.top + (682 / 953) * sc.h;
-  sc.judgeR = (100 / 953) * sc.h;
+  // v11：judgeR 原来是 100/953，比画里那个留白圆（半径约 150/953）小一大截，
+  // 太极盘因此飘在圆里像贴纸。128/953 让判定盘坐进画中的圆，四周仍留一圈墨气。
+  sc.judgeR = (128 / 953) * sc.h;
 
   Geo.track.topY = sc.top + (INK_TOP_Y / 953) * sc.h;
   Geo.track.judgeY = sc.judgeY;
